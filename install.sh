@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ─── Dotfiles Bootstrap ──────────────────────────────────────────────────────
+# Idempotent installer — safe to re-run on an already-configured machine.
+# Usage: git clone <repo> ~/dotfiles && cd ~/dotfiles && ./install.sh
+
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+
+info()  { printf '\033[1;34m[info]\033[0m  %s\n' "$*"; }
+ok()    { printf '\033[1;32m[ok]\033[0m    %s\n' "$*"; }
+warn()  { printf '\033[1;33m[warn]\033[0m  %s\n' "$*"; }
+err()   { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; }
+
+is_macos() { [[ "$OSTYPE" == darwin* ]]; }
+is_linux() { [[ "$OSTYPE" == linux* ]]; }
+
+# ─── Phase 1: Package manager & dependencies ─────────────────────────────────
+
+info "Phase 1: Package manager & dependencies"
+
+if is_macos; then
+    # Install Homebrew if missing
+    if ! command -v brew &>/dev/null; then
+        info "Installing Homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+        # Add Homebrew to PATH for the rest of this script
+        if [[ -f /opt/homebrew/bin/brew ]]; then
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+        elif [[ -f /usr/local/bin/brew ]]; then
+            eval "$(/usr/local/bin/brew shellenv)"
+        fi
+    else
+        ok "Homebrew already installed"
+    fi
+
+    info "Installing packages via Homebrew..."
+    brew install stow fd fastfetch nano git zsh
+
+elif is_linux; then
+    # Add fastfetch PPA on older Ubuntu
+    if command -v lsb_release &>/dev/null; then
+        distro=$(lsb_release -si)
+        version=$(lsb_release -sr)
+
+        if [[ "$distro" == "Ubuntu" ]] && dpkg --compare-versions "$version" lt "24.10"; then
+            if [[ ! -f /usr/share/keyrings/fastfetch-repo-keyring.asc ]]; then
+                info "Adding fastfetch PPA for Ubuntu < 24.10..."
+                FASTFETCH_SIG="eb65ee19d802f3eb1a13cfe47e2e5cb4d4865f21"
+                sudo curl -fsSL \
+                    "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${FASTFETCH_SIG}" \
+                    -o /usr/share/keyrings/fastfetch-repo-keyring.asc
+                CODENAME=$(lsb_release -sc)
+                echo "deb [signed-by=/usr/share/keyrings/fastfetch-repo-keyring.asc] https://ppa.launchpadcontent.net/zhangsongcui3371/fastfetch/ubuntu ${CODENAME} main" \
+                    | sudo tee /etc/apt/sources.list.d/fastfetch.list >/dev/null
+            else
+                ok "fastfetch PPA already configured"
+            fi
+        fi
+    fi
+
+    info "Installing packages via apt..."
+    sudo apt update -y
+    sudo apt install -y stow fd-find fastfetch nano git zsh screen ncdu fzf
+else
+    err "Unsupported platform: $OSTYPE"
+    exit 1
+fi
+
+ok "Phase 1 complete"
+
+# ─── Phase 2: Shell framework ────────────────────────────────────────────────
+
+info "Phase 2: Shell framework (Oh-My-Zsh + Powerlevel10k)"
+
+# Install Oh-My-Zsh
+if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
+    info "Installing Oh-My-Zsh..."
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" \
+        --unattended --keep-zshrc
+else
+    ok "Oh-My-Zsh already installed"
+fi
+
+# Install Powerlevel10k
+P10K_DIR="$HOME/.oh-my-zsh/custom/themes/powerlevel10k"
+if [[ ! -d "$P10K_DIR" ]]; then
+    info "Installing Powerlevel10k..."
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR"
+else
+    ok "Powerlevel10k already installed"
+fi
+
+ok "Phase 2 complete"
+
+# ─── Phase 3: Stow dotfiles ──────────────────────────────────────────────────
+
+info "Phase 3: Stow dotfiles"
+
+stow -d "$DOTFILES_DIR" -t "$HOME" common
+ok "Stowed 'common' package"
+
+if is_macos; then
+    stow -d "$DOTFILES_DIR" -t "$HOME" mac
+    ok "Stowed 'mac' package"
+fi
+
+ok "Phase 3 complete"
+
+# ─── Raspbian/Debian Buster exceptions ───────────────────────────────────────
+
+if is_linux; then
+    if [[ -f /etc/os-release ]]; then
+        # shellcheck disable=SC1091
+        source /etc/os-release
+        if [[ "${ID:-}" == "debian" || "${ID:-}" == "raspbian" ]] && [[ "${VERSION_ID:-}" == "10" ]]; then
+            info "Debian Buster detected — commenting out unsupported .nanorc options"
+            sed -i 's/^set indicator$/# set indicator/' "$HOME/.nanorc"
+            sed -i 's/^set minibar$/# set minibar/' "$HOME/.nanorc"
+            ok "Patched .nanorc for Buster compatibility"
+        fi
+    fi
+fi
+
+# ─── Phase 4: Platform extras (macOS only) ───────────────────────────────────
+
+if is_macos; then
+    info "Phase 4: macOS extras"
+
+    # Copy fonts
+    info "Installing fonts to ~/Library/Fonts..."
+    cp "$DOTFILES_DIR"/resources/fonts/*.ttf "$HOME/Library/Fonts/" 2>/dev/null || true
+    ok "Fonts installed"
+
+    # Import Smyck terminal theme
+    info "Importing Smyck.terminal theme..."
+    open "$DOTFILES_DIR/resources/Smyck.terminal" 2>/dev/null || true
+    ok "Smyck.terminal imported (check Terminal.app preferences)"
+
+    # macOS defaults (optional, prompts first)
+    echo ""
+    read -rp "Run macOS system defaults? This changes many settings and may require a reboot. [y/N] " run_defaults
+    if [[ "$run_defaults" =~ ^[Yy]$ ]]; then
+        info "Running macOS defaults..."
+        bash "$DOTFILES_DIR/scripts/macos-defaults.sh"
+        ok "macOS defaults applied — a reboot is recommended"
+    else
+        info "Skipped macOS defaults (run manually: ./scripts/macos-defaults.sh)"
+    fi
+
+    ok "Phase 4 complete"
+fi
+
+# ─── Phase 5: Shell switch ───────────────────────────────────────────────────
+
+info "Phase 5: Default shell"
+
+CURRENT_SHELL=$(basename "$SHELL")
+if [[ "$CURRENT_SHELL" != "zsh" ]]; then
+    info "Changing default shell to zsh..."
+    chsh -s "$(which zsh)"
+    ok "Default shell changed to zsh — open a new terminal to use it"
+else
+    ok "Default shell is already zsh"
+fi
+
+# ─── Done ─────────────────────────────────────────────────────────────────────
+
+echo ""
+ok "Dotfiles bootstrap complete!"
+info "Open a new terminal session to load the new configuration."

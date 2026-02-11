@@ -1,0 +1,11 @@
+set atblanks
+set autoindent
+set indicator
+set linenumbers
+set minibar
+set nohelp
+set constantshow
+set smarthome
+set softwrap
+set tabsize 4
+set tabstospaces
