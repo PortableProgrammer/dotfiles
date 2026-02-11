@@ -7,8 +7,8 @@ This repo uses [GNU Stow](https://www.gnu.org/software/stow/) to symlink dotfile
 - `common/` — Stow package for all platforms (Linux + macOS)
 - `mac/` — Stow package for macOS only (overlays on top of common)
 - `resources/` — Non-stowed assets (fonts, Terminal.app theme)
-- `scripts/` — Standalone scripts (macOS system defaults)
-- `Brewfile` — Declarative Homebrew package list (macOS); installed via `brew bundle`
+- `scripts/` — Standalone scripts (Dock layout via `dockutil`, macOS system defaults)
+- `Brewfile` — Declarative Homebrew package list (macOS): formulae, casks, and Mac App Store apps; installed via `brew bundle`
 
 ## Commands
 
@@ -40,8 +40,9 @@ stow -n -v -d ~/dotfiles -t ~ common
 - **Numbered modules in `.zshrc.d/`**: `0xx` = early init, `1xx` = framework/aliases, `2xx` = bindings, `8xx` = platform-specific (mac), `9xx` = final (prompt)
 - **Common vs mac separation**: Common aliases (e.g. `la`, `update`) are overridden by mac-specific versions that use macOS-compatible flags
 - **Idempotent installer**: `install.sh` checks for existing installations before acting — safe to re-run
-- **Single-source macOS setup**: `install.sh` is the sole entry point for macOS — Homebrew packages (via `Brewfile`), shell framework, dotfiles, fonts, and system defaults are all managed here (not in Ansible)
-- **Brewfile for packages**: Add/remove Homebrew formulae and casks in `Brewfile`, not in `install.sh`
+- **Single-source macOS setup**: `install.sh` is the sole entry point for macOS — Homebrew packages (via `Brewfile`), shell framework, dotfiles, fonts, Terminal theme, Dock layout, and system defaults are all managed here (not in Ansible)
+- **Brewfile for packages**: Add/remove Homebrew formulae, casks, and Mac App Store apps in `Brewfile`, not in `install.sh`. Mac App Store apps use `mas` (installed via Brewfile) and require being signed in with an Apple ID that has previously obtained the app.
+- **Dock layout**: `scripts/dock.sh` manages Dock contents via `dockutil`. Run standalone or through `install.sh` (which prompts first). Edit `dock.sh` to change which apps appear in the Dock.
 
 ## Ansible Integration
 

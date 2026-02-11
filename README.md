@@ -19,7 +19,7 @@ The installer handles everything a fresh machine needs:
 1. **Package manager & dependencies** — Homebrew (macOS) or apt (Linux), including all formulae, casks, and CLI tools
 2. **Shell framework** — Oh-My-Zsh and Powerlevel10k (skipped if already installed)
 3. **Stow dotfiles** — Symlinks `common` (always) and `mac` (macOS only) packages into `$HOME`
-4. **Platform extras** (macOS) — Installs fonts, imports Terminal.app theme, optionally applies system defaults
+4. **Platform extras** (macOS) — Installs fonts, imports Terminal.app theme, configures Dock, optionally applies system defaults
 5. **Shell switch** — Sets zsh as the default shell if it isn't already
 
 ## Directory Structure
@@ -53,6 +53,7 @@ dotfiles/
 │   ├── fonts/                       # MesloLGS Nerd Font (4 variants)
 │   └── Smyck.terminal              # Terminal.app color theme
 ├── scripts/
+│   ├── dock.sh                     # Dock layout configuration (via dockutil)
 │   └── macos-defaults.sh           # macOS system defaults (~300 settings)
 ├── Brewfile                         # Homebrew formulae and casks (macOS)
 └── install.sh                       # Full bootstrap entry point
@@ -109,7 +110,8 @@ To add a new module, create a `.sh` file in the appropriate `common/.zshrc.d/` o
 
 - **Fonts**: MesloLGS Nerd Font is copied to `~/Library/Fonts/` for Powerlevel10k glyph rendering
 - **Terminal theme**: Smyck.terminal is imported into Terminal.app
-- **System defaults**: `scripts/macos-defaults.sh` applies ~300 macOS preferences (Finder, Dock, Safari, etc.) — requires a reboot after running
+- **Dock layout**: `scripts/dock.sh` sets Dock contents via `dockutil` — run after apps are installed
+- **System defaults**: `scripts/macos-defaults.sh` applies macOS preferences (Finder, Dock, Safari, etc.) — requires a reboot after running
 
 ### Linux
 
@@ -126,14 +128,37 @@ Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`.
 | Shell & dotfiles | stow, fd, fastfetch, git, nano, ncdu, zsh |
 | Homelab / infra | ansible, ansible-lint, fluxcd/tap/flux, helm, k9s, kubernetes-cli, teleport |
 | Development | gh, swiftlint |
-| Utilities | gnupg, httpie, jq, nmap, socat, watch |
+| Utilities | dockutil, gnupg, httpie, jq, mas, nmap, socat, watch |
 
 ### Casks
 
 | Category | Applications |
 |----------|-------------|
-| General | jordanbaird-ice, monitorcontrol, qlmarkdown |
-| Development | powershell |
+| Browsers | google-chrome |
+| Communication | slack |
+| Development | claude, docker-desktop, powershell, royal-tsx, visual-studio-code@insiders, wireshark |
+| Gaming | nvidia-geforce-now, steam |
+| Productivity | onedrive, transmit |
+| System utilities | appcleaner, jordanbaird-ice, logi-options+, monitorcontrol, qlmarkdown |
+
+### Mac App Store (via `mas`)
+
+| App | ID |
+|-----|----|
+| 1Password 7 | 1333542190 |
+| 1Password for Safari | 1569813296 |
+| AdGuard for Safari | 1440147259 |
+| Codye | 1516894961 |
+| CotEditor | 1024640650 |
+| DaisyDisk | 411643860 |
+| Discovery | 1381004916 |
+| iStat Menus | 6499559693 |
+| Magnet | 441258766 |
+| The Unarchiver | 425424353 |
+| Userscripts | 1463298887 |
+| Xcode | 497799835 |
+
+**Note:** Mac App Store apps require being signed in and having previously obtained the app (including free apps).
 
 ## Prerequisites
 

@@ -127,6 +127,17 @@ if is_macos; then
     defaults write com.apple.Terminal "Startup Window Settings" -string "Smyck" 2>/dev/null || true
     ok "Smyck.terminal imported and configured as default and startup theme"
 
+    # Configure Dock
+    echo ""
+    read -rp "Configure Dock layout? This will replace all current Dock items. [y/N] " run_dock
+    if [[ "$run_dock" =~ ^[Yy]$ ]]; then
+        info "Configuring Dock..."
+        bash "$DOTFILES_DIR/scripts/dock.sh"
+        ok "Dock configured"
+    else
+        info "Skipped Dock setup (run manually: ./scripts/dock.sh)"
+    fi
+
     # macOS defaults (optional, prompts first)
     echo ""
     read -rp "Run macOS system defaults? This changes many settings and may require a reboot. [y/N] " run_defaults
