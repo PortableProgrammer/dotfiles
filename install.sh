@@ -123,7 +123,9 @@ if is_macos; then
     # Import Smyck terminal theme
     info "Importing Smyck.terminal theme..."
     open "$DOTFILES_DIR/resources/Smyck.terminal" 2>/dev/null || true
-    ok "Smyck.terminal imported (check Terminal.app preferences)"
+    defaults write com.apple.terminal "Default Window Settings" -string "Smyck" 2>/dev/null || true
+    defaults write com.apple.Terminal "Startup Window Settings" -string "Smyck" 2>/dev/null || true
+    ok "Smyck.terminal imported and configured as default and startup theme"
 
     # macOS defaults (optional, prompts first)
     echo ""

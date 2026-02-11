@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
 
-# ~/.macos
-
 # Find macOS Defaults at https://macos-defaults.com/
 
 # Close any open System Settings panes, to prevent them from overriding
-# settings we’re about to change
+# settings we're about to change
 osascript -e 'tell application "System Settings" to quit'
 
 # Ask for the administrator password upfront
 sudo -v
 
-# Keep-alive: update existing `sudo` time stamp until `.macos` has finished
+# Keep-alive: update existing `sudo` time stamp until `macos-defaults.sh` has finished
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
 ###############################################################################
@@ -30,7 +28,7 @@ defaults write -g AppleLanguages -array "en"
 defaults write -g AppleLocale -string "en_US"
 
 # Configure region customizations
-## Default date format: yyyy-MM-dd 
+## Default date format: yyyy-MM-dd
 defaults write -g AppleICUDateFormatStrings -array "y-MM-dd"
 
 # Expand save panel by default
@@ -44,13 +42,10 @@ defaults write -g PMPrintingExpandedStateForPrint2 -bool true
 # Automatically quit printer app once the print jobs complete
 defaults write com.apple.print.PrintingPrefs "Quit When Finished" -bool true
 
-# Disable the “Are you sure you want to open this application?” dialog
-defaults write com.apple.LaunchServices LSQuarantine -bool false
-
 # Maximize window on double-click
 defaults write -g AppleActionOnDoubleClick -string "Maximize"
 
-# Remove duplicates in the “Open With” menu (also see `lscleanup` alias)
+# Remove duplicates in the "Open With" menu (also see `lscleanup` alias)
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user
 
 ###############################################################################
@@ -81,19 +76,11 @@ sudo pmset -c displaysleep 180
 # Screen                                                                      #
 ###############################################################################
 
-# Require password immediately after sleep or screen saver begins
-defaults write com.apple.screensaver askForPassword -int 1
-defaults write com.apple.screensaver askForPasswordDelay -int 5
-
 # Save screenshots to downloads
 defaults write com.apple.screencapture location -string "${HOME}/Downloads"
 
 # Save screenshots in PNG format (other options: BMP, GIF, JPG, PDF, TIFF)
 defaults write com.apple.screencapture type -string "png"
-
-# Enable subpixel font rendering on non-Apple LCDs
-# Reference: https://github.com/kevinSuttle/macOS-Defaults/issues/17#issuecomment-266633501
-defaults write -g AppleFontSmoothing -int 1
 
 ###############################################################################
 # Finder                                                                      #
@@ -153,13 +140,13 @@ defaults write com.apple.dock largesize -int 72
 # Change minimize/maximize window effect
 defaults write com.apple.dock mineffect -string "scale"
 
-# Minimize windows into their application’s icon
+# Minimize windows into their application's icon
 defaults write com.apple.dock minimize-to-application -bool true
 
-# Don’t show recent applications in Dock
+# Don't show recent applications in Dock
 defaults write com.apple.dock show-recents -bool false
 
-# Don’t automatically rearrange Spaces based on most recent use
+# Don't automatically rearrange Spaces based on most recent use
 defaults write com.apple.dock mru-spaces -bool false
 
 # Move Dock to the left
@@ -182,13 +169,13 @@ defaults write com.apple.Safari AutoFillFromAddressBook -bool false
 defaults write com.apple.Safari AutoFillMiscellaneousForms -bool false
 defaults write com.apple.Safari AutoFillPasswords -bool false
 
-# Prevent Safari from opening ‘safe’ files automatically after downloading
+# Prevent Safari from opening 'safe' files automatically after downloading
 defaults write com.apple.Safari AutoOpenSafeDownloads -bool false
 
 # Clear download list upon completion
 defaults write com.apple.Safari DownloadsClearingPolicy -int 2
 
-# Make Safari’s search banners default to Contains instead of Starts With
+# Make Safari's search banners default to Contains instead of Starts With
 defaults write com.apple.Safari FindOnPageMatchesWordStartsOnly -bool false
 
 # Configure Start Page
@@ -230,7 +217,7 @@ defaults write com.apple.Safari ShowTabGroupFavoritesPreferenceKey -bool false
 defaults write com.apple.Safari WebKitTabToLinksPreferenceKey -bool true
 defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2TabsToLinks -bool true
 
-# Hide Safari’s sidebar in Top Sites
+# Hide Safari's sidebar in Top Sites
 defaults write com.apple.Safari ShowSidebarInTopSites -bool false
 
 # Enable the Develop menu and the Web Inspector in Safari
@@ -243,9 +230,6 @@ defaults write -g WebKitDeveloperExtras -bool true
 
 # Warn about fraudulent websites
 defaults write com.apple.Safari WarnAboutFraudulentWebsites -bool true
-
-# Enable “Do Not Track”
-defaults write com.apple.Safari SendDoNotTrackHTTPHeader -bool true
 
 # Update extensions automatically
 defaults write com.apple.Safari InstallExtensionUpdatesAutomatically -bool true
@@ -300,87 +284,11 @@ defaults write com.apple.mail ShowReplyToHeader -bool false
 defaults write com.apple.mail SignaturePlacedAboveQuotedText -bool true
 
 ###############################################################################
-# Terminal                                                                    #
-###############################################################################
-
-# Use UTF-8 in Terminal.app
-defaults write com.apple.terminal StringEncodings -array 4
-
-# Install Meslo Nerd Font for Powerlevel10k https://github.com/romkatv/powerlevel10k#fonts
-# This currently requires manual input to install and activate the fonts
-echo "Waiting for fonts to install..."
-open -W '$HOME/.init/*.ttf'
-echo "Done."
-
-# Use Smyck theme https://color.smyck.org
-# Use Meslo Nerd Font for Powerlevel10k
-osascript <<EOD
-
-tell application "Terminal"
-
-	local allOpenedWindows
-	local initialOpenedWindows
-	local windowID
-	set themeName to "Smyck"
-	set fontName to "MesloLGS-NF-Regular"
-
-	(* Store the IDs of all the open terminal windows. *)
-	set initialOpenedWindows to id of every window
-
-	(* Open the custom theme so that it gets added to the list
-	   of available terminal themes (note: this will open two
-	   additional terminal windows). *)
-	do shell script "open '$HOME/.init/" & themeName & ".terminal'"
-
-	(* Wait a little bit to ensure that the custom theme is added. *)
-	delay 1
-
-	(* Set the custom theme as the default terminal theme. *)
-	set default settings to settings set themeName
-	(* Set the custom font as the default terminal font. *)
-	set font name of default settings to fontName
-
-	(* Get the IDs of all the currently opened terminal windows. *)
-	set allOpenedWindows to id of every window
-
-	repeat with windowID in allOpenedWindows
-
-		(* Close the additional windows that were opened in order
-		   to add the custom theme to the list of terminal themes. *)
-		if initialOpenedWindows does not contain windowID then
-			close (every window whose id is windowID)
-
-		(* Change the theme for the initial opened terminal windows
-		   to remove the need to close them in order for the custom
-		   theme to be applied. *)
-		else
-			set current settings of tabs of (every window whose id is windowID) to settings set themeName
-		end if
-
-	end repeat
-
-end tell
-
-EOD
-
-###############################################################################
 # App Store and Software Update                                               #
 ###############################################################################
 
-# Enable Debug Menu in the Mac App Store
-defaults write com.apple.appstore ShowDebugMenu -bool true
-
-# Enable the WebKit Developer Tools in the Mac App Store
-defaults write com.apple.appstore WebKitDeveloperExtras -bool true
-
-# Turn on app auto-update
-defaults write com.apple.commerce AutoUpdate -bool true
-
 # Enable the automatic update check
 defaults write com.apple.SoftwareUpdate AutomaticCheckEnabled -bool true
-
-# Check for software updates daily, not just once per week
-defaults write com.apple.SoftwareUpdate ScheduleFrequency -int 1
 
 # Download newly available updates in background
 defaults write com.apple.SoftwareUpdate AutomaticDownload -int 1
