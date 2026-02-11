@@ -54,6 +54,7 @@ dotfiles/
 │   └── Smyck.terminal              # Terminal.app color theme
 ├── scripts/
 │   └── macos-defaults.sh           # macOS system defaults (~300 settings)
+├── Brewfile                         # Homebrew formulae and casks (macOS)
 └── install.sh                       # Full bootstrap entry point
 ```
 
@@ -116,22 +117,22 @@ To add a new module, create a `.sh` file in the appropriate `common/.zshrc.d/` o
 
 ## Homebrew Packages (macOS)
 
-The installer manages all Homebrew formulae and casks. Re-running `install.sh` will install any missing packages.
+Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`. To add or remove packages, edit the Brewfile and re-run `install.sh` (or `brew bundle --file=~/dotfiles/Brewfile` directly).
 
 ### Formulae
 
 | Category | Packages |
 |----------|----------|
-| Shell & dotfiles | stow, fd, fastfetch, nano, git, zsh |
-| Homelab / infra | ansible, flux, helm, k9s, kubernetes-cli, teleport |
-| Utilities | gnupg, httpie, jq, nmap, qlmarkdown, socat, watch |
+| Shell & dotfiles | stow, fd, fastfetch, git, nano, ncdu, zsh |
+| Homelab / infra | ansible, ansible-lint, fluxcd/tap/flux, helm, k9s, kubernetes-cli, teleport |
+| Development | gh, swiftlint |
+| Utilities | gnupg, httpie, jq, nmap, socat, watch |
 
 ### Casks
 
 | Category | Applications |
 |----------|-------------|
-| General | jordanbaird-ice, monitorcontrol |
-| Gaming | whisky |
+| General | jordanbaird-ice, monitorcontrol, qlmarkdown |
 | Development | powershell |
 
 ## Prerequisites

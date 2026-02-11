@@ -37,18 +37,8 @@ if is_macos; then
         ok "Homebrew already installed"
     fi
 
-    info "Installing Homebrew formulae..."
-    brew install \
-        stow fd fastfetch nano git zsh \
-        qlmarkdown \
-        ansible flux helm k9s kubernetes-cli teleport \
-        gnupg httpie jq nmap socat watch
-
-    info "Installing Homebrew casks..."
-    brew install --cask \
-        jordanbaird-ice monitorcontrol \
-        whisky \
-        powershell
+    info "Installing Homebrew packages from Brewfile..."
+    brew bundle --file="$DOTFILES_DIR/Brewfile"
 
 elif is_linux; then
     # Add fastfetch PPA on older Ubuntu

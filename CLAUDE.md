@@ -8,6 +8,7 @@ This repo uses [GNU Stow](https://www.gnu.org/software/stow/) to symlink dotfile
 - `mac/` — Stow package for macOS only (overlays on top of common)
 - `resources/` — Non-stowed assets (fonts, Terminal.app theme)
 - `scripts/` — Standalone scripts (macOS system defaults)
+- `Brewfile` — Declarative Homebrew package list (macOS); installed via `brew bundle`
 
 ## Commands
 
@@ -39,7 +40,8 @@ stow -n -v -d ~/dotfiles -t ~ common
 - **Numbered modules in `.zshrc.d/`**: `0xx` = early init, `1xx` = framework/aliases, `2xx` = bindings, `8xx` = platform-specific (mac), `9xx` = final (prompt)
 - **Common vs mac separation**: Common aliases (e.g. `la`, `update`) are overridden by mac-specific versions that use macOS-compatible flags
 - **Idempotent installer**: `install.sh` checks for existing installations before acting — safe to re-run
-- **Single-source macOS setup**: `install.sh` is the sole entry point for macOS — all Homebrew formulae, casks, shell framework, dotfiles, fonts, and system defaults are managed here (not in Ansible)
+- **Single-source macOS setup**: `install.sh` is the sole entry point for macOS — Homebrew packages (via `Brewfile`), shell framework, dotfiles, fonts, and system defaults are all managed here (not in Ansible)
+- **Brewfile for packages**: Add/remove Homebrew formulae and casks in `Brewfile`, not in `install.sh`
 
 ## Ansible Integration
 
