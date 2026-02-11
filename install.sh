@@ -37,8 +37,18 @@ if is_macos; then
         ok "Homebrew already installed"
     fi
 
-    info "Installing packages via Homebrew..."
-    brew install stow fd fastfetch nano git zsh
+    info "Installing Homebrew formulae..."
+    brew install \
+        stow fd fastfetch nano git zsh \
+        qlmarkdown \
+        ansible flux helm k9s kubernetes-cli teleport \
+        gnupg httpie jq nmap socat watch
+
+    info "Installing Homebrew casks..."
+    brew install --cask \
+        jordanbaird-ice monitorcontrol \
+        whisky \
+        powershell
 
 elif is_linux; then
     # Add fastfetch PPA on older Ubuntu
@@ -109,21 +119,6 @@ if is_macos; then
 fi
 
 ok "Phase 3 complete"
-
-# ─── Raspbian/Debian Buster exceptions ───────────────────────────────────────
-
-if is_linux; then
-    if [[ -f /etc/os-release ]]; then
-        # shellcheck disable=SC1091
-        source /etc/os-release
-        if [[ "${ID:-}" == "debian" || "${ID:-}" == "raspbian" ]] && [[ "${VERSION_ID:-}" == "10" ]]; then
-            info "Debian Buster detected — commenting out unsupported .nanorc options"
-            sed -i 's/^set indicator$/# set indicator/' "$HOME/.nanorc"
-            sed -i 's/^set minibar$/# set minibar/' "$HOME/.nanorc"
-            ok "Patched .nanorc for Buster compatibility"
-        fi
-    fi
-fi
 
 # ─── Phase 4: Platform extras (macOS only) ───────────────────────────────────
 

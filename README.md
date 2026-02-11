@@ -16,7 +16,7 @@ cd ~/dotfiles
 
 The installer handles everything a fresh machine needs:
 
-1. **Package manager & dependencies** — Homebrew (macOS) or apt (Linux), plus stow, fd, fastfetch, nano, git, zsh, and more
+1. **Package manager & dependencies** — Homebrew (macOS) or apt (Linux), including all formulae, casks, and CLI tools
 2. **Shell framework** — Oh-My-Zsh and Powerlevel10k (skipped if already installed)
 3. **Stow dotfiles** — Symlinks `common` (always) and `mac` (macOS only) packages into `$HOME`
 4. **Platform extras** (macOS) — Installs fonts, imports Terminal.app theme, optionally applies system defaults
@@ -112,8 +112,27 @@ To add a new module, create a `.sh` file in the appropriate `common/.zshrc.d/` o
 
 ### Linux
 
-- **Debian Buster**: The installer automatically comments out unsupported `.nanorc` options (`indicator`, `minibar`)
 - **Ubuntu < 24.10**: The fastfetch PPA is added automatically since the package isn't in the default repos
+
+## Homebrew Packages (macOS)
+
+The installer manages all Homebrew formulae and casks. Re-running `install.sh` will install any missing packages.
+
+### Formulae
+
+| Category | Packages |
+|----------|----------|
+| Shell & dotfiles | stow, fd, fastfetch, nano, git, zsh |
+| Homelab / infra | ansible, flux, helm, k9s, kubernetes-cli, teleport |
+| Utilities | gnupg, httpie, jq, nmap, qlmarkdown, socat, watch |
+
+### Casks
+
+| Category | Applications |
+|----------|-------------|
+| General | jordanbaird-ice, monitorcontrol |
+| Gaming | whisky |
+| Development | powershell |
 
 ## Prerequisites
 

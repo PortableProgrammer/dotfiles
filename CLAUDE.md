@@ -39,6 +39,7 @@ stow -n -v -d ~/dotfiles -t ~ common
 - **Numbered modules in `.zshrc.d/`**: `0xx` = early init, `1xx` = framework/aliases, `2xx` = bindings, `8xx` = platform-specific (mac), `9xx` = final (prompt)
 - **Common vs mac separation**: Common aliases (e.g. `la`, `update`) are overridden by mac-specific versions that use macOS-compatible flags
 - **Idempotent installer**: `install.sh` checks for existing installations before acting — safe to re-run
+- **Single-source macOS setup**: `install.sh` is the sole entry point for macOS — all Homebrew formulae, casks, shell framework, dotfiles, fonts, and system defaults are managed here (not in Ansible)
 
 ## Ansible Integration
 
