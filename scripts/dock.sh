@@ -19,7 +19,7 @@ dockutil --remove all --no-restart
 # Finder is always present and cannot be removed; it stays at position 1.
 
 dockutil --add "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app" --section apps --no-restart
-dockutil --add "$HOME/Applications/Open Google Chrome Profile.app" --section apps --no-restart
+# "Open Google Chrome Profile" shortcut app must be added manually (see README)
 dockutil --add "/Applications/Slack.app" --section apps --no-restart
 dockutil --add "/System/Applications/Calendar.app" --section apps --no-restart
 dockutil --add "/System/Applications/Mail.app" --section apps --no-restart

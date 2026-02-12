@@ -177,8 +177,9 @@ After `install.sh` completes, the following require manual configuration:
 1. **1Password** — Sign in and configure the desktop app; the Safari extension is installed separately via the App Store
 2. **iStat Menus** — Enter your license key, then import settings from `resources/iStat Menus Settings *.ismp7` via iStat Menus > Preferences > Import
 3. **TestFlight apps** — Open TestFlight and install any beta apps (e.g. UniFi) that aren't available through the App Store or Homebrew
-4. **macOS defaults** — If you skipped the prompt during install, run `./scripts/macos-defaults.sh` manually and reboot
-5. **Dock layout** — If you skipped the prompt during install, run `./scripts/dock.sh` manually after all apps are installed
+4. **Open Google Chrome Profile shortcut** — Open Shortcuts.app, import the [Open Google Chrome Profile](https://www.icloud.com/shortcuts/6ea0740784744ecb8f11cebe8580e38a) shortcut, then right-click it > Add to Dock. After the app appears in `~/Applications/`, re-run `./scripts/dock.sh` to place it in the correct Dock position.
+5. **macOS defaults** — If you skipped the prompt during install, run `./scripts/macos-defaults.sh` manually and reboot
+6. **Dock layout** — If you skipped the prompt during install, run `./scripts/dock.sh` manually after all apps are installed
 
 ## Prerequisites
 
