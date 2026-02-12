@@ -18,9 +18,10 @@ The installer handles everything a fresh machine needs:
 
 1. **Package manager & dependencies** — Homebrew (macOS) or apt (Linux), including all formulae, casks, and CLI tools
 2. **Shell framework** — Oh-My-Zsh and Powerlevel10k (skipped if already installed)
-3. **Stow dotfiles** — Symlinks `common` (always) and `mac` (macOS only) packages into `$HOME`
-4. **Platform extras** (macOS) — Installs fonts, imports Terminal.app theme, configures Dock, optionally applies system defaults
-5. **Shell switch** — Sets zsh as the default shell if it isn't already
+3. **SSH signing key** (macOS) — Fetches your SSH signing public key from GitHub's API for git commit signing
+4. **Stow dotfiles** — Symlinks `common` (always) and `mac` (macOS only) packages into `$HOME`
+5. **Platform extras** (macOS) — Installs fonts, imports Terminal.app theme, configures Dock, optionally applies system defaults
+6. **Shell switch** — Sets zsh as the default shell if it isn't already
 
 ## Directory Structure
 
@@ -34,9 +35,6 @@ dotfiles/
 │   ├── .p10k.zsh                    # Powerlevel10k theme config
 │   ├── .screenrc                    # GNU Screen settings
 │   ├── .nanorc                      # Nano editor config
-│   ├── .gitconfig                   # Git identity, signing, and pull config
-│   ├── .ssh/
-│   │   └── id_ed25519.pub           # SSH signing public key (used by .gitconfig)
 │   ├── .hushlogin                   # Suppress login banners
 │   ├── .zshrc.d/                    # Modular zsh scripts (loaded in order)
 │   │   ├── 010_screen.sh            # Auto-attach screen on SSH
@@ -53,6 +51,7 @@ dotfiles/
 │   │   ├── CLAUDE.md                # Global AI assistant preferences
 │   │   ├── settings.json            # Statusline configuration
 │   │   └── statusline-command.sh    # Custom statusline script
+│   ├── .gitconfig                   # Git identity, signing, and pull config
 │   ├── .ssh/
 │   │   └── config                   # SSH config (1Password agent)
 │   └── .zshrc.d/

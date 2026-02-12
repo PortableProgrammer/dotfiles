@@ -38,9 +38,10 @@ stow -n -v -d ~/dotfiles -t ~ common
 ## Key Patterns
 
 - **Numbered modules in `.zshrc.d/`**: `0xx` = early init, `1xx` = framework/aliases, `2xx` = bindings, `8xx` = platform-specific (mac), `9xx` = final (prompt)
-- **Common vs mac separation**: Common package has cross-platform files (`.gitconfig`, shell config); mac package adds macOS-specific files (`.ssh/config` for 1Password agent, `.claude/` for Claude Code, `.zshrc.d/` mac scripts)
+- **Common vs mac separation**: Common package has cross-platform files (shell config, nano, screen); mac package adds macOS-specific files (`.gitconfig` for identity/signing, `.ssh/config` for 1Password agent, `.claude/` for Claude Code, `.zshrc.d/` mac scripts)
+- **SSH signing key**: On macOS, `install.sh` fetches the SSH signing public key from GitHub's `/users/{username}/ssh_signing_keys` API and writes it to `~/.ssh/id_ed25519.pub` for git commit signing. The key is not stored in the repo — GitHub is the single source of truth.
 - **Idempotent installer**: `install.sh` checks for existing installations before acting — safe to re-run
-- **Single-source macOS setup**: `install.sh` is the sole entry point for macOS — Homebrew packages (via `Brewfile`), shell framework, dotfiles, fonts, Terminal theme, Dock layout, and system defaults are all managed here (not in Ansible)
+- **Single-source macOS setup**: `install.sh` is the sole entry point for macOS — Homebrew packages (via `Brewfile`), shell framework, SSH signing key, dotfiles, fonts, Terminal theme, Dock layout, and system defaults are all managed here (not in Ansible)
 - **Brewfile for packages**: Add/remove Homebrew formulae, casks, and Mac App Store apps in `Brewfile`, not in `install.sh`. Mac App Store apps use `mas` (installed via Brewfile) and require being signed in with an Apple ID that has previously obtained the app.
 - **Dock layout**: `scripts/dock.sh` manages Dock contents via `dockutil`. Run standalone or through `install.sh` (which prompts first). Edit `dock.sh` to change which apps appear in the Dock.
 

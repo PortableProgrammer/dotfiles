@@ -104,6 +104,26 @@ fi
 
 ok "Phase 2 complete"
 
+# ─── SSH signing key (macOS) ────────────────────────────────────────────────
+
+if is_macos; then
+    if [[ ! -f "$HOME/.ssh/id_ed25519.pub" ]]; then
+        info "Fetching SSH signing key from GitHub..."
+        mkdir -p "$HOME/.ssh"
+        SIGNING_KEY=$(curl -fsSL https://api.github.com/users/PortableProgrammer/ssh_signing_keys \
+            | jq -r '.[0].key')
+        if [[ -n "$SIGNING_KEY" && "$SIGNING_KEY" != "null" ]]; then
+            echo "$SIGNING_KEY" > "$HOME/.ssh/id_ed25519.pub"
+            chmod 644 "$HOME/.ssh/id_ed25519.pub"
+            ok "SSH signing key installed"
+        else
+            warn "Could not fetch SSH signing key from GitHub — git commit signing may not work"
+        fi
+    else
+        ok "SSH signing key already exists"
+    fi
+fi
+
 # ─── Phase 3: Stow dotfiles ──────────────────────────────────────────────────
 
 info "Phase 3: Stow dotfiles"
