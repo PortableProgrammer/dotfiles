@@ -24,7 +24,7 @@ The installer handles everything a fresh machine needs:
 
 ## Directory Structure
 
-```
+```shell
 dotfiles/
 ├── common/                          # stow package: all platforms
 │   ├── .bashrc                      # Bash initialization (fallback shell)
@@ -34,6 +34,7 @@ dotfiles/
 │   ├── .p10k.zsh                    # Powerlevel10k theme config
 │   ├── .screenrc                    # GNU Screen settings
 │   ├── .nanorc                      # Nano editor config
+│   ├── .gitconfig                   # Git identity, signing, and pull config
 │   ├── .hushlogin                   # Suppress login banners
 │   ├── .zshrc.d/                    # Modular zsh scripts (loaded in order)
 │   │   ├── 010_screen.sh            # Auto-attach screen on SSH
@@ -46,16 +47,23 @@ dotfiles/
 │       └── fastfetch/
 │           └── config.jsonc         # Fastfetch display config
 ├── mac/                             # stow package: macOS only
+│   ├── .claude/                     # Claude Code global config
+│   │   ├── CLAUDE.md                # Global AI assistant preferences
+│   │   ├── settings.json            # Statusline configuration
+│   │   └── statusline-command.sh    # Custom statusline script
+│   ├── .ssh/
+│   │   └── config                   # SSH config (1Password agent)
 │   └── .zshrc.d/
 │       ├── 898_mac_env.sh           # 1Password SSH agent
 │       └── 899_mac_aliases.sh       # macOS-specific aliases
 ├── resources/
 │   ├── fonts/                       # MesloLGS Nerd Font (4 variants)
-│   └── Smyck.terminal              # Terminal.app color theme
+│   ├── iStat Menus Settings *.ismp7 # iStat Menus settings backup (manual import)
+│   └── Smyck.terminal               # Terminal.app color theme
 ├── scripts/
-│   ├── dock.sh                     # Dock layout configuration (via dockutil)
-│   └── macos-defaults.sh           # macOS system defaults (~300 settings)
-├── Brewfile                         # Homebrew formulae and casks (macOS)
+│   ├── dock.sh                      # Dock layout configuration (via dockutil)
+│   └── macos-defaults.sh            # macOS system defaults (~300 settings)
+├── Brewfile                         # Homebrew formulae, casks, and App Store apps (macOS)
 └── install.sh                       # Full bootstrap entry point
 ```
 
@@ -82,7 +90,7 @@ stow -n -v -d ~/dotfiles -t ~ common
 Shell configuration is split into numbered modules that load in sorted order. Use the numbering scheme to control load order:
 
 | Range | Purpose | Examples |
-|-------|---------|----------|
+| ------- | --------- | ---------- |
 | `0xx` | Early initialization | Screen auto-attach, system info display |
 | `1xx` | Framework & aliases | Oh-My-Zsh setup, shell aliases |
 | `2xx` | Bindings & completion | Key bindings, tab completion |
@@ -94,7 +102,7 @@ To add a new module, create a `.sh` file in the appropriate `common/.zshrc.d/` o
 ### Key Aliases
 
 | Alias | Platform | Description |
-|-------|----------|-------------|
+| ------- | ---------- | ------------- |
 | `la` | All | Detailed file listing |
 | `update` | Linux | Full apt update/upgrade/autoremove/clean |
 | `update` | macOS | Software Update + Homebrew update |
@@ -124,7 +132,7 @@ Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`.
 ### Formulae
 
 | Category | Packages |
-|----------|----------|
+| ---------- | ---------- |
 | Shell & dotfiles | stow, fd, fastfetch, git, nano, ncdu, zsh |
 | Homelab / infra | ansible, ansible-lint, fluxcd/tap/flux, helm, k9s, kubernetes-cli, teleport |
 | Development | gh, swiftlint |
@@ -133,32 +141,44 @@ Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`.
 ### Casks
 
 | Category | Applications |
-|----------|-------------|
+| ---------- | ------------- |
 | Browsers | google-chrome |
 | Communication | slack |
-| Development | claude, docker-desktop, powershell, royal-tsx, visual-studio-code@insiders, wireshark |
+| Development | claude, claude-code, docker-desktop, powershell, royal-tsx, visual-studio-code@insiders, wireshark |
 | Gaming | nvidia-geforce-now, steam |
-| Productivity | onedrive, transmit |
+| Productivity | microsoft-office, onedrive, transmit |
+| Security | 1password |
+| System monitoring | istat-menus |
 | System utilities | appcleaner, jordanbaird-ice, logi-options+, monitorcontrol, qlmarkdown |
 
 ### Mac App Store (via `mas`)
 
 | App | ID |
-|-----|----|
-| 1Password 7 | 1333542190 |
+| ----- | ---- |
 | 1Password for Safari | 1569813296 |
 | AdGuard for Safari | 1440147259 |
 | Codye | 1516894961 |
 | CotEditor | 1024640650 |
 | DaisyDisk | 411643860 |
 | Discovery | 1381004916 |
-| iStat Menus | 6499559693 |
 | Magnet | 441258766 |
+| TestFlight | 899247664 |
 | The Unarchiver | 425424353 |
 | Userscripts | 1463298887 |
+| WiFiman | 1385561119 |
 | Xcode | 497799835 |
 
 **Note:** Mac App Store apps require being signed in and having previously obtained the app (including free apps).
+
+## Post-Install Manual Steps
+
+After `install.sh` completes, the following require manual configuration:
+
+1. **1Password** — Sign in and configure the desktop app; the Safari extension is installed separately via the App Store
+2. **iStat Menus** — Enter your license key, then import settings from `resources/iStat Menus Settings *.ismp7` via iStat Menus > Preferences > Import
+3. **TestFlight apps** — Open TestFlight and install any beta apps (e.g. UniFi) that aren't available through the App Store or Homebrew
+4. **macOS defaults** — If you skipped the prompt during install, run `./scripts/macos-defaults.sh` manually and reboot
+5. **Dock layout** — If you skipped the prompt during install, run `./scripts/dock.sh` manually after all apps are installed
 
 ## Prerequisites
 

@@ -46,6 +46,7 @@ cask "slack"
 
 # Development
 cask "claude"
+cask "claude-code"
 cask "docker-desktop"
 cask "powershell"
 cask "royal-tsx"
@@ -57,8 +58,15 @@ cask "nvidia-geforce-now"
 cask "steam"
 
 # Productivity
+cask "microsoft-office"
 cask "onedrive"
 cask "transmit"
+
+# Security
+cask "1password"
+
+# System monitoring
+cask "istat-menus"
 
 # System utilities
 cask "appcleaner"
@@ -69,15 +77,15 @@ cask "qlmarkdown"
 
 # ─── Mac App Store ────────────────────────────────────────────────────────────
 
-mas "1Password 7", id: 1333542190
 mas "1Password for Safari", id: 1569813296
 mas "AdGuard for Safari", id: 1440147259
 mas "Codye", id: 1516894961
 mas "CotEditor", id: 1024640650
 mas "DaisyDisk", id: 411643860
 mas "Discovery", id: 1381004916
-mas "iStat Menus", id: 6499559693
 mas "Magnet", id: 441258766
+mas "TestFlight", id: 899247664
 mas "The Unarchiver", id: 425424353
 mas "Userscripts", id: 1463298887
+mas "WiFiman", id: 1385561119
 mas "Xcode", id: 497799835

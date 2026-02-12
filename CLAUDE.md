@@ -6,7 +6,7 @@ This repo uses [GNU Stow](https://www.gnu.org/software/stow/) to symlink dotfile
 
 - `common/` — Stow package for all platforms (Linux + macOS)
 - `mac/` — Stow package for macOS only (overlays on top of common)
-- `resources/` — Non-stowed assets (fonts, Terminal.app theme)
+- `resources/` — Non-stowed assets (fonts, Terminal.app theme, iStat Menus settings backup)
 - `scripts/` — Standalone scripts (Dock layout via `dockutil`, macOS system defaults)
 - `Brewfile` — Declarative Homebrew package list (macOS): formulae, casks, and Mac App Store apps; installed via `brew bundle`
 
@@ -38,7 +38,7 @@ stow -n -v -d ~/dotfiles -t ~ common
 ## Key Patterns
 
 - **Numbered modules in `.zshrc.d/`**: `0xx` = early init, `1xx` = framework/aliases, `2xx` = bindings, `8xx` = platform-specific (mac), `9xx` = final (prompt)
-- **Common vs mac separation**: Common aliases (e.g. `la`, `update`) are overridden by mac-specific versions that use macOS-compatible flags
+- **Common vs mac separation**: Common package has cross-platform files (`.gitconfig`, shell config); mac package adds macOS-specific files (`.ssh/config` for 1Password agent, `.claude/` for Claude Code, `.zshrc.d/` mac scripts)
 - **Idempotent installer**: `install.sh` checks for existing installations before acting — safe to re-run
 - **Single-source macOS setup**: `install.sh` is the sole entry point for macOS — Homebrew packages (via `Brewfile`), shell framework, dotfiles, fonts, Terminal theme, Dock layout, and system defaults are all managed here (not in Ansible)
 - **Brewfile for packages**: Add/remove Homebrew formulae, casks, and Mac App Store apps in `Brewfile`, not in `install.sh`. Mac App Store apps use `mas` (installed via Brewfile) and require being signed in with an Apple ID that has previously obtained the app.

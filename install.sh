@@ -17,6 +17,14 @@ err()   { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; }
 is_macos() { [[ "$OSTYPE" == darwin* ]]; }
 is_linux() { [[ "$OSTYPE" == linux* ]]; }
 
+# ─── Sudo keep-alive ────────────────────────────────────────────────────────
+
+# Ask for the administrator password upfront (needed by brew casks, apt, chsh)
+sudo -v
+
+# Keep-alive: update existing sudo timestamp until this script has finished
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+
 # ─── Phase 1: Package manager & dependencies ─────────────────────────────────
 
 info "Phase 1: Package manager & dependencies"
@@ -170,3 +178,8 @@ fi
 echo ""
 ok "Dotfiles bootstrap complete!"
 info "Open a new terminal session to load the new configuration."
+echo ""
+info "Manual steps remaining:"
+info "  1. 1Password — Sign in and configure"
+info "  2. iStat Menus — Enter license key and import settings from resources/"
+info "  3. TestFlight — Open and install beta apps (e.g. UniFi)"
