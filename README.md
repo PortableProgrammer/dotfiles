@@ -35,6 +35,8 @@ dotfiles/
 │   ├── .screenrc                    # GNU Screen settings
 │   ├── .nanorc                      # Nano editor config
 │   ├── .gitconfig                   # Git identity, signing, and pull config
+│   ├── .ssh/
+│   │   └── id_ed25519.pub           # SSH signing public key (used by .gitconfig)
 │   ├── .hushlogin                   # Suppress login banners
 │   ├── .zshrc.d/                    # Modular zsh scripts (loaded in order)
 │   │   ├── 010_screen.sh            # Auto-attach screen on SSH
