@@ -24,7 +24,7 @@ defaults write -g AppleInterfaceStyleSwitchesAutomatically -bool true
 defaults write -g AppleKeyboardUIMode -int 3
 
 # Set region
-defaults write -g AppleLanguages -array "en"
+defaults write -g AppleLanguages -array "en-US"
 defaults write -g AppleLocale -string "en_US"
 
 # Configure region customizations
@@ -179,7 +179,7 @@ defaults write com.apple.Safari DownloadsClearingPolicy -int 2
 defaults write com.apple.Safari FindOnPageMatchesWordStartsOnly -bool false
 
 # Configure Start Page
-defaults write com.apple.Safari CloudTabsOnStartPageConsent -bool false
+defaults write com.apple.Safari CloudTabsOnStartPageConsent -bool true
 defaults write com.apple.Safari HideHighlightsEmptyItemViewPreferenceKey -bool true
 defaults write com.apple.Safari HideStartPageFrecentsEmptyItemView -bool true
 defaults write com.apple.Safari HideStartPageRecentlyClosedTabsEmptyItemView -bool false
@@ -214,8 +214,9 @@ defaults write com.apple.Safari ShowStandaloneTabBar -bool false
 defaults write com.apple.Safari ShowTabGroupFavoritesPreferenceKey -bool false
 
 # Press Tab to highlight each item on a web page
-defaults write com.apple.Safari WebKitTabToLinksPreferenceKey -bool true
-defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2TabsToLinks -bool true
+# Disabled: Tab only cycles form fields, not links/buttons (macOS default)
+defaults write com.apple.Safari WebKitTabToLinksPreferenceKey -bool false
+defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2TabsToLinks -bool false
 
 # Hide Safari's sidebar in Top Sites
 defaults write com.apple.Safari ShowSidebarInTopSites -bool false
