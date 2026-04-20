@@ -16,3 +16,5 @@
 	gpgSign = true
 [gpg]
 	format = ssh
+[gpg "ssh"]
+	allowedSignersFile = /Users/nwarner/.ssh/allowed_signers
