@@ -21,6 +21,7 @@ brew "helm"
 brew "k9s"
 brew "kubernetes-cli"
 brew "teleport"
+brew "pre-commit"
 
 # Development
 brew "gh"
