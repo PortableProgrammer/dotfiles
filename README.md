@@ -5,12 +5,20 @@ Stow-based dotfiles with a full-bootstrap installer for macOS and Linux.
 ## Quick Start
 
 ```bash
-git clone https://github.com/portableprogrammer/dotfiles.git ~/dotfiles
+git clone https://github.com/PortableProgrammer/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 ./install.sh
 ```
 
 `install.sh` is idempotent — safe to re-run on an already-configured machine.
+
+> [!NOTE]
+> **Forking this repo?** The `mac/` package is personalized:
+>
+> - [mac/.gitconfig](mac/.gitconfig) hardcodes my git identity (name, email, signing key path).
+> - [install.sh](install.sh) fetches *my* SSH signing public key from GitHub's API.
+>
+> Swap these for your own values before stowing, or you'll try to commit as me. The `common/` package is portable and doesn't need changes.
 
 ## What It Does
 
@@ -148,7 +156,7 @@ Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`.
 | Development | claude, claude-code, docker-desktop, powershell, royal-tsx, visual-studio-code@insiders, wireshark |
 | Gaming | nvidia-geforce-now, steam |
 | Productivity | microsoft-office, onedrive, transmit |
-| Security | 1password |
+| Security | 1password, 1password-cli |
 | System monitoring | istat-menus |
 | System utilities | appcleaner, jordanbaird-ice, logi-options+, monitorcontrol, qlmarkdown |
 
@@ -175,7 +183,7 @@ Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`.
 
 After `install.sh` completes, the following require manual configuration:
 
-1. **1Password** — Sign in and configure the desktop app; the Safari extension is installed separately via the App Store
+1. **1Password** — Sign in and configure the desktop app. To enable the `op` CLI (used for Ansible vault automation and similar workflows), also turn on "Integrate with 1Password CLI" in 1Password > Settings > Developer. The Safari extension is installed separately via the App Store.
 2. **iStat Menus** — Enter your license key, then import settings from `resources/iStat Menus Settings *.ismp7` via iStat Menus > Preferences > Import
 3. **TestFlight apps** — Open TestFlight and install any beta apps (e.g. UniFi) that aren't available through the App Store or Homebrew
 4. **Open Google Chrome Profile shortcut** — Open Shortcuts.app, import the [Open Google Chrome Profile](https://www.icloud.com/shortcuts/6ea0740784744ecb8f11cebe8580e38a) shortcut, then right-click it > Add to Dock. After the app appears in `~/Applications/`, re-run `./scripts/dock.sh` to place it in the correct Dock position.
