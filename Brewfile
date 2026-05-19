@@ -65,6 +65,7 @@ cask "transmit"
 
 # Security
 cask "1password"
+cask "1password-cli"
 
 # System monitoring
 cask "istat-menus"
