@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# whichenv — print the current environment context.
+# Imperative complement to the p10k envtype segment (common/.zshrc.d/115_env_segment.sh).
+# Useful for confirming context after window-switching or at Claude session startup.
+
+set -euo pipefail
+
+if [[ -f /.dockerenv ]] || [[ -n "${REMOTE_CONTAINERS:-}" ]] || [[ -n "${DEVCONTAINER:-}" ]]; then
+  echo "context:   devcontainer"
+  echo "host:      $(hostname)"
+  [[ -n "${REMOTE_CONTAINERS_WORKSPACE_FOLDER:-}" ]] && echo "workspace: $REMOTE_CONTAINERS_WORKSPACE_FOLDER"
+elif [[ -n "${SSH_CONNECTION:-}" ]]; then
+  echo "context:   ssh remote"
+  echo "user:      $(whoami)@$(hostname -s)"
+  echo "from:      $(awk '{print $1}' <<<"$SSH_CONNECTION")"
+elif [[ "$OSTYPE" == darwin* ]]; then
+  echo "context:   macOS host"
+  echo "user:      $(whoami)@$(hostname -s)"
+elif [[ "$OSTYPE" == linux* ]]; then
+  echo "context:   linux host"
+  echo "user:      $(whoami)@$(hostname)"
+else
+  echo "context:   unknown ($OSTYPE)"
+  echo "user:      $(whoami)@$(hostname)"
+fi

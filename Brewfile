@@ -20,8 +20,9 @@ brew "fluxcd/tap/flux"
 brew "helm"
 brew "k9s"
 brew "kubernetes-cli"
-brew "teleport"
 brew "pre-commit"
+brew "sops"
+brew "teleport"
 
 # Development
 brew "gh"

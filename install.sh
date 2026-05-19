@@ -107,20 +107,33 @@ ok "Phase 2 complete"
 # ─── SSH signing key (macOS) ────────────────────────────────────────────────
 
 if is_macos; then
-    if [[ ! -f "$HOME/.ssh/id_ed25519.pub" ]]; then
+    mkdir -p "$HOME/.ssh"
+    chmod 700 "$HOME/.ssh"
+
+    SSH_PUB="$HOME/.ssh/id_ed25519.pub"
+    ALLOWED_SIGNERS="$HOME/.ssh/allowed_signers"
+    SIGNING_PRINCIPAL="nick@warnerheavyindustries.com"
+
+    if [[ ! -f "$SSH_PUB" ]] || [[ ! -f "$ALLOWED_SIGNERS" ]]; then
         info "Fetching SSH signing key from GitHub..."
-        mkdir -p "$HOME/.ssh"
         SIGNING_KEY=$(curl -fsSL https://api.github.com/users/PortableProgrammer/ssh_signing_keys \
             | jq -r '.[0].key')
-        if [[ -n "$SIGNING_KEY" && "$SIGNING_KEY" != "null" ]]; then
-            echo "$SIGNING_KEY" > "$HOME/.ssh/id_ed25519.pub"
-            chmod 644 "$HOME/.ssh/id_ed25519.pub"
-            ok "SSH signing key installed"
-        else
+        if [[ -z "$SIGNING_KEY" || "$SIGNING_KEY" == "null" ]]; then
             warn "Could not fetch SSH signing key from GitHub — git commit signing may not work"
+        else
+            if [[ ! -f "$SSH_PUB" ]]; then
+                echo "$SIGNING_KEY" > "$SSH_PUB"
+                chmod 644 "$SSH_PUB"
+                ok "SSH signing public key installed"
+            fi
+            if [[ ! -f "$ALLOWED_SIGNERS" ]]; then
+                echo "$SIGNING_PRINCIPAL namespaces=\"git\" $SIGNING_KEY" > "$ALLOWED_SIGNERS"
+                chmod 644 "$ALLOWED_SIGNERS"
+                ok "Allowed signers file installed (enables local git verify-commit)"
+            fi
         fi
     else
-        ok "SSH signing key already exists"
+        ok "SSH signing key and allowed signers already in place"
     fi
 fi
 

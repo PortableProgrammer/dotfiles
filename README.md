@@ -143,7 +143,7 @@ Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`.
 | Category | Packages |
 | ---------- | ---------- |
 | Shell & dotfiles | stow, fd, fastfetch, git, nano, ncdu, zsh |
-| Homelab / infra | ansible, ansible-lint, fluxcd/tap/flux, helm, k9s, kubernetes-cli, teleport |
+| Homelab / infra | ansible, ansible-lint, fluxcd/tap/flux, helm, k9s, kubernetes-cli, pre-commit, sops, teleport |
 | Development | gh, swiftlint |
 | Utilities | dockutil, gnupg, httpie, jq, mas, nmap, socat, watch |
 
