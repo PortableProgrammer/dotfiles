@@ -12,6 +12,8 @@ cd ~/dotfiles
 
 `install.sh` is idempotent — safe to re-run on an already-configured machine.
 
+After `install.sh` finishes, walk through [FIRST-RUN.md](FIRST-RUN.md) for the manual steps the installer deliberately doesn't automate — 1Password sign-in, `gh auth login`, container runtime, macOS permissions, network access, per-project bootstrap pointer.
+
 > [!NOTE]
 > **Forking this repo?** The `mac/` package is personalized:
 >
