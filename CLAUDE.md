@@ -48,3 +48,12 @@ stow -n -v -d ~/dotfiles -t ~ common
 ## Ansible Integration
 
 The homelab repo's Ansible roles clone this repo and run `stow` to deploy dotfiles on managed hosts. The repo URL and branch are configured via the `common_dotfiles_repo`, `common_dotfiles_version`, and `common_dotfiles_dest` variables in the homelab's Ansible role defaults.
+
+## Ideating notebook
+
+Out-of-repo ideating-window output lives at:
+`~/.claude/projects/-Users-nwarner-Code-dotfiles/ideating/`
+
+Half-baked ideas, speculative architecture proposals, and tooling-gap notes from sessions where the operator was unavailable and an ideating window was sanctioned per the global rule. The notebook compounds; ideas that don't pan out on their own often seed ones that do, so old entries are worth glancing at, not just the latest.
+
+Most recent entry: `2026-05-18.md` — public-flip resolution + deferred items (Brewfile drift, fresh-install validation, ansible vault templating decision, prompt-segment greenfield lesson, pointers to operator-triage notes). Read the latest before starting open-ended work.
