@@ -25,6 +25,26 @@ The `mas` CLI tool that `install.sh` uses to install App Store apps **cannot sig
 
 Some Brewfile entries — currently just `swiftlint` — require a **full Xcode installation**, not just CLT. Xcode is a ~15 GB install and takes 20+ minutes; only do this if you actively need swiftlint or other Xcode-dependent tooling. If you skip Xcode, expect `swiftlint` to fail during `install.sh`; everything else still installs.
 
+### 0d. Grant Terminal "App Management" permission (macOS 14+)
+
+macOS Sonoma (14) and later require explicit user consent before an app can modify other installed apps. Several Brewfile casks (anything `.pkg`-based that writes to `/Applications`) trip this gate during install — you'll see a `chown` or permission error mid-script.
+
+**Pre-approve before running `install.sh`:**
+
+1. System Settings → Privacy & Security → App Management.
+2. Toggle on whichever terminal you're running `install.sh` from (Terminal, iTerm2, Ghostty, Warp, etc.).
+3. **Critical**: if macOS prompts to restart the terminal app for the change to take effect, accept. Once the terminal restarts, the sudo cache is cleared and any in-flight `install.sh` is gone. **Granting this permission mid-install means re-running the script from the beginning** — better to grant it before starting.
+
+### 0e. Verify the App Store can actually transact
+
+Just being signed in isn't enough — the App Store also needs to be able to *complete a download*. Verify by installing one free app manually from the GUI **before** running `install.sh`. If the manual install fails with the same `Unknown Error` that `mas` reports, the problem is at the Apple-ID / device-trust layer, not the CLI.
+
+Possible causes when free-app download fails persistently:
+- New device requires approval from an already-signed-in device (check your phone or another Mac for a pending verification prompt).
+- Apple ID security review (sometimes triggered for new-device sign-in, can take up to 24h).
+- Payment method missing or rejected — Apple sometimes requires a valid payment method on file even for free apps when the device is brand-new.
+- **Virtualized macOS specifically**: some Apple ID / App Store features check hardware identifiers that VMs don't expose cleanly. If you've signed into the same Apple ID on a bare-metal Mac without issue, the issue is likely VM-specific. Workaround: install App Store apps manually on the bare-metal target machine; on VMs, you may need to comment out the `mas` section of the Brewfile and accept the gap.
+
 ## What to expect during `install.sh` itself
 
 `install.sh` requests your sudo password once at start and keeps the sudo timestamp alive for the duration of the run. **You may still see additional password prompts** for certain casks (`docker-desktop`, `wireshark`, `microsoft-office`, `logi-options+`, and similar `.pkg`-based installers). These prompts come from macOS Authorization Services — they bypass the `sudo` cache and ask for your password directly. This is expected, not a bug.
