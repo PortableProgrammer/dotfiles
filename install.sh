@@ -30,6 +30,17 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 info "Phase 1: Package manager & dependencies"
 
 if is_macos; then
+    # Trigger Xcode Command Line Tools install if missing. Non-blocking —
+    # this surfaces the GUI dialog without halting the script. If CLT
+    # isn't installed by the time Homebrew runs, brew install will fail
+    # for formulae that need a compiler. The dialog is harmless if CLT
+    # is already present.
+    if ! xcode-select -p &>/dev/null; then
+        info "Triggering Xcode Command Line Tools install dialog (click Install in the popup)..."
+        xcode-select --install 2>/dev/null || true
+        warn "Wait for the CLT install dialog to complete before re-running this script if anything fails below."
+    fi
+
     # Install Homebrew if missing
     if ! command -v brew &>/dev/null; then
         info "Installing Homebrew..."
@@ -46,7 +57,17 @@ if is_macos; then
     fi
 
     info "Installing Homebrew packages from Brewfile..."
-    brew bundle --file="$DOTFILES_DIR/Brewfile"
+    # Tolerate partial failure so Phases 2-5 can still run. Common reasons
+    # individual Brewfile entries fail on a fresh machine:
+    #  - App Store not signed in via the GUI (mas entries error with
+    #    "Unknown Error" — open App Store.app, sign in, re-run this script)
+    #  - swiftlint requires a full Xcode.app (install via App Store
+    #    after this script completes, then re-run for the swiftlint pickup)
+    #  - Some .pkg casks (docker-desktop, wireshark, microsoft-office,
+    #    logi-options+) trigger their own Authorization Services password
+    #    prompts which sudo keep-alive does NOT cover
+    brew bundle --file="$DOTFILES_DIR/Brewfile" || \
+        warn "Some Brewfile entries failed to install. See output above. Continuing to subsequent phases; re-run install.sh after addressing the failures (e.g. App Store sign-in) to retry."
 
 elif is_linux; then
     # Add fastfetch PPA on older Ubuntu

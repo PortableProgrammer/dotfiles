@@ -1,8 +1,35 @@
 # First-Run Checklist
 
-Steps to do **after** `./install.sh` completes on a fresh machine, in order. These are the things `install.sh` deliberately doesn't (or can't) automate — manual interactions, identity bootstrap, OS-level permissions.
+Steps to do **before** and **after** `./install.sh` on a fresh machine, in order. These are the things `install.sh` deliberately doesn't (or can't) automate — manual interactions, identity bootstrap, OS-level permissions.
 
 If you're the original operator, this is the recovery runbook. If you've forked this repo, these steps will need adjustment for your own accounts and identity provider.
+
+## 0. Pre-install (do this first)
+
+These steps prevent specific failures during `install.sh`. Each one is a 30-second action that saves a re-run cycle.
+
+### 0a. Open the App Store and sign in
+
+The `mas` CLI tool that `install.sh` uses to install App Store apps **cannot sign you in** — Apple removed that capability from `mas` in macOS 10.13+. If the App Store GUI hasn't been signed in at least once on this machine, every `mas` install will fail with `Error Domain=ISErrorDomain Code=-128 "Unknown Error."`
+
+1. Open the App Store app.
+2. Click your account icon (bottom-left) and sign in with your Apple ID.
+3. Accept any terms / 2FA prompts.
+4. **Leave the App Store running** in the background during `install.sh` — being logged in via the GUI is necessary; the CLI uses the GUI's auth session.
+
+### 0b. Trigger Xcode Command Line Tools (CLT)
+
+`install.sh` now triggers the CLT install dialog automatically (via `xcode-select --install`), but you may see this from a different vector first — running `git --version`, `git clone`, or any other developer tool on a vanilla macOS install pops the same dialog. **Click "Install" in the popup and wait for it to complete** before letting `install.sh` proceed past Phase 1. If CLT isn't installed, formulae that need a compiler will fail.
+
+### 0c. (Optional) Install full Xcode from the App Store
+
+Some Brewfile entries — currently just `swiftlint` — require a **full Xcode installation**, not just CLT. Xcode is a ~15 GB install and takes 20+ minutes; only do this if you actively need swiftlint or other Xcode-dependent tooling. If you skip Xcode, expect `swiftlint` to fail during `install.sh`; everything else still installs.
+
+## What to expect during `install.sh` itself
+
+`install.sh` requests your sudo password once at start and keeps the sudo timestamp alive for the duration of the run. **You may still see additional password prompts** for certain casks (`docker-desktop`, `wireshark`, `microsoft-office`, `logi-options+`, and similar `.pkg`-based installers). These prompts come from macOS Authorization Services — they bypass the `sudo` cache and ask for your password directly. This is expected, not a bug.
+
+If `brew bundle` reports failures at the end of Phase 1, the script will now continue to subsequent phases rather than aborting. After the script finishes, address the failed items and re-run `./install.sh` — `brew bundle` is idempotent, so already-installed entries are skipped.
 
 ## 1. Sign in to 1Password
 
