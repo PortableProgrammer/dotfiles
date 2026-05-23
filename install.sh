@@ -17,6 +17,22 @@ err()   { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; }
 is_macos() { [[ "$OSTYPE" == darwin* ]]; }
 is_linux() { [[ "$OSTYPE" == linux* ]]; }
 
+# Detect whether we're running on virtualized macOS. Used to skip the
+# Brewfile's `mas` block — per Apple Support article 120468, iCloud
+# services including the Mac App Store are unavailable in virtualized
+# macOS, even when signed in to a valid Apple ID. Verified empirically
+# on a macOS 26.5 VM (2026-05-22).
+# Covers: Virtualization.framework (VirtualMac*), VMware Fusion
+# (VMware*), Parallels (Parallels*), QEMU. Bare-metal Macs return
+# model identifiers like MacBookPro17,1 / Mac15,X / MacBookAir10,1
+# which don't match.
+is_macos_vm() {
+    is_macos || return 1
+    local model
+    model=$(sysctl -n hw.model 2>/dev/null || echo "")
+    [[ "$model" =~ ^(VirtualMac|VMware|Parallels|QEMU) ]]
+}
+
 # ─── Sudo keep-alive ────────────────────────────────────────────────────────
 
 # Ask for the administrator password upfront (needed by brew casks, apt, chsh)
@@ -59,15 +75,31 @@ if is_macos; then
     info "Installing Homebrew packages from Brewfile..."
     # Tolerate partial failure so Phases 2-5 can still run. Common reasons
     # individual Brewfile entries fail on a fresh machine:
-    #  - App Store not signed in via the GUI (mas entries error with
-    #    "Unknown Error" — open App Store.app, sign in, re-run this script)
     #  - swiftlint requires a full Xcode.app (install via App Store
     #    after this script completes, then re-run for the swiftlint pickup)
     #  - Some .pkg casks (docker-desktop, wireshark, microsoft-office,
     #    logi-options+) trigger their own Authorization Services password
     #    prompts which sudo keep-alive does NOT cover
-    brew bundle --file="$DOTFILES_DIR/Brewfile" || \
-        warn "Some Brewfile entries failed to install. See output above. Continuing to subsequent phases; re-run install.sh after addressing the failures (e.g. App Store sign-in) to retry."
+
+    # If we're in a macOS VM, skip the `mas` block entirely — App Store
+    # is unavailable in virtualized macOS regardless of Apple ID state.
+    # Filter to a temp Brewfile rather than commenting in source so the
+    # canonical Brewfile stays correct for bare-metal use.
+    if is_macos_vm; then
+        warn "macOS VM detected (model: $(sysctl -n hw.model)). Apple Support"
+        warn "article 120468 confirms iCloud services including the Mac App"
+        warn "Store are unavailable in virtualized macOS. Skipping mas entries."
+        warn "Install App Store apps on bare-metal macOS — re-run install.sh"
+        warn "there to pick up the mas block."
+        BUNDLE_FILE=$(mktemp -t brewfile-no-mas.XXXXXX)
+        grep -v '^mas ' "$DOTFILES_DIR/Brewfile" > "$BUNDLE_FILE"
+        brew bundle --file="$BUNDLE_FILE" || \
+            warn "Some Brewfile entries failed to install. See output above. Continuing to subsequent phases."
+        rm -f "$BUNDLE_FILE"
+    else
+        brew bundle --file="$DOTFILES_DIR/Brewfile" || \
+            warn "Some Brewfile entries failed to install. See output above. Continuing to subsequent phases; re-run install.sh after addressing the failures (e.g. App Store sign-in) to retry."
+    fi
 
 elif is_linux; then
     # Add fastfetch PPA on older Ubuntu

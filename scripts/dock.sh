@@ -12,29 +12,51 @@ fi
 
 echo "Configuring Dock..."
 
+# Tolerant add — skip silently if the target doesn't exist. Lets the
+# Dock layout configure correctly when some apps are missing (e.g.
+# App-Store-sourced apps like CotEditor on a macOS VM where the mas
+# block was skipped, or any app the user opted out of installing).
+dock_add_app() {
+    local app="$1"
+    if [[ -d "$app" ]]; then
+        dockutil --add "$app" --section apps --no-restart
+    else
+        echo "  Skipping (not installed): $app"
+    fi
+}
+
+dock_add_folder() {
+    local path="$1"
+    if [[ -d "$path" ]]; then
+        dockutil --add "$path" --view auto --display folder --section others --no-restart
+    else
+        echo "  Skipping (does not exist): $path"
+    fi
+}
+
 # Remove all existing items
 dockutil --remove all --no-restart
 
 # ─── Apps (left of separator) ────────────────────────────────────────────────
 # Finder is always present and cannot be removed; it stays at position 1.
 
-dockutil --add "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app" --section apps --no-restart
+dock_add_app "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app"
 # "Open Google Chrome Profile" shortcut app must be added manually (see README)
-dockutil --add "/Applications/Slack.app" --section apps --no-restart
-dockutil --add "/System/Applications/Calendar.app" --section apps --no-restart
-dockutil --add "/System/Applications/Mail.app" --section apps --no-restart
-dockutil --add "/System/Applications/Messages.app" --section apps --no-restart
-dockutil --add "/Applications/CotEditor.app" --section apps --no-restart
-dockutil --add "/Applications/Visual Studio Code - Insiders.app" --section apps --no-restart
-dockutil --add "/Applications/Claude.app" --section apps --no-restart
-dockutil --add "/System/Applications/Utilities/Terminal.app" --section apps --no-restart
-dockutil --add "/System/Applications/System Settings.app" --section apps --no-restart
+dock_add_app "/Applications/Slack.app"
+dock_add_app "/System/Applications/Calendar.app"
+dock_add_app "/System/Applications/Mail.app"
+dock_add_app "/System/Applications/Messages.app"
+dock_add_app "/Applications/CotEditor.app"
+dock_add_app "/Applications/Visual Studio Code - Insiders.app"
+dock_add_app "/Applications/Claude.app"
+dock_add_app "/System/Applications/Utilities/Terminal.app"
+dock_add_app "/System/Applications/System Settings.app"
 
 # ─── Folders (right of separator) ────────────────────────────────────────────
 # Trash is always present and cannot be removed.
 
-dockutil --add "/Applications" --view auto --display folder --section others --no-restart
-dockutil --add "$HOME/Downloads" --view auto --display folder --section others --no-restart
+dock_add_folder "/Applications"
+dock_add_folder "$HOME/Downloads"
 
 # ─── Apply ────────────────────────────────────────────────────────────────────
 

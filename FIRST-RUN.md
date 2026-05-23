@@ -35,15 +35,16 @@ macOS Sonoma (14) and later require explicit user consent before an app can modi
 2. Toggle on whichever terminal you're running `install.sh` from (Terminal, iTerm2, Ghostty, Warp, etc.).
 3. **Critical**: if macOS prompts to restart the terminal app for the change to take effect, accept. Once the terminal restarts, the sudo cache is cleared and any in-flight `install.sh` is gone. **Granting this permission mid-install means re-running the script from the beginning** — better to grant it before starting.
 
-### 0e. Verify the App Store can actually transact
+### 0e. Verify the App Store can actually transact (bare-metal only)
 
-Just being signed in isn't enough — the App Store also needs to be able to *complete a download*. Verify by installing one free app manually from the GUI **before** running `install.sh`. If the manual install fails with the same `Unknown Error` that `mas` reports, the problem is at the Apple-ID / device-trust layer, not the CLI.
+Just being signed in isn't enough — the App Store also needs to be able to *complete a download*. Verify by installing one free app manually from the GUI **before** running `install.sh`. If the manual install fails with `Unknown Error` (`ISErrorDomain Code=-128`), the problem is at the Apple-ID / device-trust layer.
 
-Possible causes when free-app download fails persistently:
+Possible causes:
 - New device requires approval from an already-signed-in device (check your phone or another Mac for a pending verification prompt).
 - Apple ID security review (sometimes triggered for new-device sign-in, can take up to 24h).
 - Payment method missing or rejected — Apple sometimes requires a valid payment method on file even for free apps when the device is brand-new.
-- **Virtualized macOS specifically**: some Apple ID / App Store features check hardware identifiers that VMs don't expose cleanly. If you've signed into the same Apple ID on a bare-metal Mac without issue, the issue is likely VM-specific. Workaround: install App Store apps manually on the bare-metal target machine; on VMs, you may need to comment out the `mas` section of the Brewfile and accept the gap.
+
+**Virtualized macOS — different story:** per [Apple Support article 120468](https://support.apple.com/en-us/120468), iCloud services including the Mac App Store are **not available on virtualized macOS**, even with a valid Apple ID and a verified trusted device. This is a platform-level restriction, not a configuration problem. `install.sh` detects virtualized macOS (`sysctl -n hw.model` matching `VirtualMac*`, `VMware*`, `Parallels*`, or `QEMU`) and **automatically skips the `mas` block** in that case — no action needed. The App Store apps will need to be installed on a bare-metal target.
 
 ## What to expect during `install.sh` itself
 
