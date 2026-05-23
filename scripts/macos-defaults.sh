@@ -61,7 +61,12 @@ sudo pmset -a lidwake 1
 sudo pmset -a autorestart 1
 
 # Restart automatically if the computer freezes
-sudo systemsetup -setrestartfreeze on
+# Note: on macOS Tahoe (26+) this command emits an internal Apple error
+# referencing /AppleInternal/Library/... paths (Error:-99) regardless of
+# whether the setting actually applied. Verifiable via System Settings.
+# Suppress stderr to keep the script's output clean; the underlying
+# setting attempt still runs.
+sudo systemsetup -setrestartfreeze on 2>/dev/null || true
 
 # Power profiles
 ## Battery
