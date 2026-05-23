@@ -1,31 +1,47 @@
 # First-Run Checklist
 
-Steps to do **before** and **after** `./install.sh` on a fresh machine, in order. These are the things `install.sh` deliberately doesn't (or can't) automate — manual interactions, identity bootstrap, OS-level permissions.
+Linear runbook for a fresh machine. Walk it from the top. The flow is:
 
-If you're the original operator, this is the recovery runbook. If you've forked this repo, these steps will need adjustment for your own accounts and identity provider.
+1. **Pre-install gates** (steps 1–4): prevent specific failures by handling things `install.sh` can't.
+2. **Run `./install.sh`** (step 5): automated bootstrap.
+3. **Post-install identity + setup** (steps 6–11): manual interactions the installer deliberately doesn't (or can't) automate.
 
-## 0. Pre-install (do this first)
+If you're the original operator, this is the recovery runbook. If you've forked this repo, the post-install steps will need adjustment for your own accounts.
+
+---
+
+## Pre-install gates
 
 These steps prevent specific failures during `install.sh`. Each one is a 30-second action that saves a re-run cycle.
 
-### 0a. Open the App Store and sign in
+### 1. Verify the App Store works (bare-metal only)
 
-The `mas` CLI tool that `install.sh` uses to install App Store apps **cannot sign you in** — Apple removed that capability from `mas` in macOS 10.13+. If the App Store GUI hasn't been signed in at least once on this machine, every `mas` install will fail with `Error Domain=ISErrorDomain Code=-128 "Unknown Error."`
+The `mas` CLI tool that `install.sh` uses to install App Store apps cannot sign you in or pop dialogs — it relies entirely on the App Store GUI's auth session. So **sign in *and* verify a real download works** before you trust `mas`:
 
 1. Open the App Store app.
-2. Click your account icon (bottom-left) and sign in with your Apple ID.
-3. Accept any terms / 2FA prompts.
-4. **Leave the App Store running** in the background during `install.sh` — being logged in via the GUI is necessary; the CLI uses the GUI's auth session.
+2. Click your account icon (bottom-left) and sign in with your Apple ID. Accept any terms / 2FA prompts.
+3. **Install one free app manually** (any free thing — Apple Configurator 2, GarageBand, anything that doesn't cost money). If this succeeds, `mas` will work too.
+4. **Leave the App Store running** during `install.sh`.
 
-### 0b. Trigger Xcode Command Line Tools (CLT)
+If the manual install fails with `Unknown Error` (`ISErrorDomain Code=-128`):
+- New device requires approval from an already-signed-in device (check your phone or another Mac for a pending verification prompt).
+- Apple ID security review (sometimes triggered for new-device sign-in, can take up to 24h).
+- Payment method missing or rejected — Apple sometimes requires a valid payment method on file even for free apps when the device is brand-new.
 
-`install.sh` now triggers the CLT install dialog automatically (via `xcode-select --install`), but you may see this from a different vector first — running `git --version`, `git clone`, or any other developer tool on a vanilla macOS install pops the same dialog. **Click "Install" in the popup and wait for it to complete** before letting `install.sh` proceed past Phase 1. If CLT isn't installed, formulae that need a compiler will fail.
+**Virtualized macOS — skip this step:** per [Apple Support article 120468](https://support.apple.com/en-us/120468), iCloud services including the Mac App Store are **not available on virtualized macOS**, even with a valid Apple ID and a verified trusted device. This is a platform-level restriction, not a configuration problem. `install.sh` detects virtualized macOS (`sysctl -n hw.model` matching `VirtualMac*`, `VMware*`, `Parallels*`, or `QEMU`) and **automatically skips the `mas` block**. The App Store apps will need to be installed on a bare-metal target.
 
-### 0c. (Optional) Install full Xcode from the App Store
+### 2. Trigger Xcode Command Line Tools (CLT)
+
+`install.sh` triggers the CLT install dialog automatically (via `xcode-select --install`), but you may see this from a different vector first — running `git --version`, `git clone`, or any other developer tool on a vanilla macOS install pops the same dialog. **Click "Install" in the popup and wait for it to complete** before letting `install.sh` proceed past Phase 1. If CLT isn't installed, formulae that need a compiler will fail.
+
+> [!TIP]
+> On a VM, the CLT install dialog can hide behind a full-screen terminal — `Cmd+Tab` / Mission Control on the VM may not surface it. If the dialog seems missing, shrink the terminal window to find it.
+
+### 3. (Optional) Install full Xcode from the App Store
 
 Some Brewfile entries — currently just `swiftlint` — require a **full Xcode installation**, not just CLT. Xcode is a ~15 GB install and takes 20+ minutes; only do this if you actively need swiftlint or other Xcode-dependent tooling. If you skip Xcode, expect `swiftlint` to fail during `install.sh`; everything else still installs.
 
-### 0d. Grant Terminal "App Management" permission (macOS 14+)
+### 4. Grant Terminal "App Management" permission (macOS 14+)
 
 macOS Sonoma (14) and later require explicit user consent before an app can modify other installed apps. Several Brewfile casks (anything `.pkg`-based that writes to `/Applications`) trip this gate during install — you'll see a `chown` or permission error mid-script.
 
@@ -33,26 +49,33 @@ macOS Sonoma (14) and later require explicit user consent before an app can modi
 
 1. System Settings → Privacy & Security → App Management.
 2. Toggle on whichever terminal you're running `install.sh` from (Terminal, iTerm2, Ghostty, Warp, etc.).
-3. **Critical**: if macOS prompts to restart the terminal app for the change to take effect, accept. Once the terminal restarts, the sudo cache is cleared and any in-flight `install.sh` is gone. **Granting this permission mid-install means re-running the script from the beginning** — better to grant it before starting.
+3. **Critical**: if macOS prompts to restart the terminal app for the change to take effect, accept. Granting this permission mid-install means re-running the script from the beginning (the sudo cache is cleared with the terminal restart).
 
-### 0e. Verify the App Store can actually transact (bare-metal only)
+---
 
-Just being signed in isn't enough — the App Store also needs to be able to *complete a download*. Verify by installing one free app manually from the GUI **before** running `install.sh`. If the manual install fails with `Unknown Error` (`ISErrorDomain Code=-128`), the problem is at the Apple-ID / device-trust layer.
+## 5. Run `./install.sh`
 
-Possible causes:
-- New device requires approval from an already-signed-in device (check your phone or another Mac for a pending verification prompt).
-- Apple ID security review (sometimes triggered for new-device sign-in, can take up to 24h).
-- Payment method missing or rejected — Apple sometimes requires a valid payment method on file even for free apps when the device is brand-new.
+```bash
+cd ~/dotfiles
+./install.sh
+```
 
-**Virtualized macOS — different story:** per [Apple Support article 120468](https://support.apple.com/en-us/120468), iCloud services including the Mac App Store are **not available on virtualized macOS**, even with a valid Apple ID and a verified trusted device. This is a platform-level restriction, not a configuration problem. `install.sh` detects virtualized macOS (`sysctl -n hw.model` matching `VirtualMac*`, `VMware*`, `Parallels*`, or `QEMU`) and **automatically skips the `mas` block** in that case — no action needed. The App Store apps will need to be installed on a bare-metal target.
+### What to expect during the run
 
-## What to expect during `install.sh` itself
+- **One sudo prompt at the start** for the script's own sudo keep-alive. After that, sudo stays cached.
+- **Additional password prompts** for certain casks (`docker-desktop`, `wireshark`, `microsoft-office`, `logi-options+`, and similar `.pkg`-based installers). These come from macOS Authorization Services — they bypass the `sudo` cache and ask for your password directly. Not a bug.
+- **Permission popups** for some apps that need additional macOS privileges during install (e.g. Logi Options+ requesting Bluetooth and Input Monitoring). You can interact with these while the script continues in the background.
+- **`brew bundle` partial failure is tolerated** — the script continues to subsequent phases. After the script finishes, address the failed items and re-run `./install.sh` to retry. `brew bundle` is idempotent; already-installed entries are skipped.
 
-`install.sh` requests your sudo password once at start and keeps the sudo timestamp alive for the duration of the run. **You may still see additional password prompts** for certain casks (`docker-desktop`, `wireshark`, `microsoft-office`, `logi-options+`, and similar `.pkg`-based installers). These prompts come from macOS Authorization Services — they bypass the `sudo` cache and ask for your password directly. This is expected, not a bug.
+If the script aborts mid-way (e.g. a stow conflict, network drop), fix the cause and re-run — every phase is idempotent.
 
-If `brew bundle` reports failures at the end of Phase 1, the script will now continue to subsequent phases rather than aborting. After the script finishes, address the failed items and re-run `./install.sh` — `brew bundle` is idempotent, so already-installed entries are skipped.
+---
 
-## 1. Sign in to 1Password
+## Post-install: identity, permissions, and per-project setup
+
+After `install.sh` completes, walk these in order.
+
+## 6. Sign in to 1Password
 
 Required first — almost everything downstream pulls credentials from 1Password.
 
@@ -70,7 +93,7 @@ Required first — almost everything downstream pulls credentials from 1Password
 
 If `op whoami` fails, run `op signin` and follow the prompt.
 
-## 2. Authenticate GitHub CLI
+## 7. Authenticate GitHub CLI
 
 ```bash
 gh auth login
@@ -85,7 +108,7 @@ gh auth status
 
 Once `gh` is authenticated and the 1Password SSH agent is serving your key, all subsequent `git clone` commands work over either HTTPS or SSH.
 
-## 3. Start your container runtime
+## 8. Start your container runtime
 
 `install.sh` installs the runtime via Brewfile but doesn't launch or license it.
 
@@ -105,7 +128,7 @@ docker ps
 
 Pick one and stick with it — projects with devcontainers don't care which runs, but mixing both wastes resources.
 
-## 4. macOS system permissions (macOS only)
+## 9. macOS system permissions (macOS only)
 
 These can only be granted by hand via System Settings. Some apps will prompt on first use; others have to be granted proactively.
 
@@ -124,7 +147,7 @@ These can only be granted by hand via System Settings. Some apps will prompt on 
 
 - Install the 1Password browser extension when prompted on first launch of your browser. Sign in.
 
-## 5. Network access
+## 10. Network access
 
 If you operate services that live behind a VPN, get on the VPN before continuing. The mechanism depends on your setup (UniFi Teleport, WireGuard, Tailscale, corporate VPN, etc.) — install/configure per your project's documentation, not this repo.
 
@@ -136,7 +159,7 @@ ping <some-internal-host>
 
 If that fails, downstream project bootstrap (kubectl, internal git, etc.) will also fail.
 
-## 6. Per-project bootstrap
+## 11. Per-project bootstrap
 
 `install.sh` and the steps above give you a working **operator workstation** — shell, editor, package manager, identity, network. They don't set up any specific project.
 
@@ -149,7 +172,7 @@ For each project you operate, follow its own bootstrap doc (typically `docs/oper
 
 If you're the operator setting up the first project on a new machine: this is where you go next.
 
-## 7. Verification
+## 12. Verification
 
 A `bin/verify-workstation.sh` should exit cleanly. Run it now to catch anything the above missed:
 

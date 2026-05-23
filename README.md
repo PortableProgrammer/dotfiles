@@ -7,12 +7,11 @@ Stow-based dotfiles with a full-bootstrap installer for macOS and Linux.
 ```bash
 git clone https://github.com/PortableProgrammer/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-./install.sh
 ```
 
-`install.sh` is idempotent — safe to re-run on an already-configured machine.
+Then **follow [FIRST-RUN.md](FIRST-RUN.md) from the top.** It walks the full setup linearly: pre-install gates (App Store sign-in, Xcode CLT, Terminal permissions), running `./install.sh` itself, then post-install identity bootstrap (1Password, GitHub CLI, container runtime, macOS permissions, network, per-project handoff).
 
-After `install.sh` finishes, walk through [FIRST-RUN.md](FIRST-RUN.md) for the manual steps the installer deliberately doesn't automate — 1Password sign-in, `gh auth login`, container runtime, macOS permissions, network access, per-project bootstrap pointer.
+`install.sh` is idempotent — safe to re-run on an already-configured machine, and safe to re-run after a partial failure to pick up where it left off.
 
 > [!NOTE]
 > **Forking this repo?** The `mac/` package is personalized:

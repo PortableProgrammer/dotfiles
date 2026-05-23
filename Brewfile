@@ -55,10 +55,6 @@ cask "royal-tsx"
 cask "visual-studio-code@insiders"
 cask "wireshark"
 
-# Gaming
-cask "nvidia-geforce-now"
-cask "steam"
-
 # Productivity
 cask "microsoft-office"  # bundles OneDrive — do NOT also list cask "onedrive" (conflicts)
 cask "transmit"

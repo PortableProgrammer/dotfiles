@@ -133,9 +133,37 @@ fi
 
 ok "Phase 1 complete"
 
-# ─── Phase 2: Shell framework ────────────────────────────────────────────────
+# ─── Phase 2: Stow dotfiles ──────────────────────────────────────────────────
+# Stow runs BEFORE Oh-My-Zsh so our .zshrc symlink is in place when OMZ's
+# installer runs with --keep-zshrc. Previously the order was reversed and
+# OMZ wrote its template at $HOME/.zshrc, then stow couldn't symlink over
+# the regular file (2026-05-22 VM bootstrap test).
 
-info "Phase 2: Shell framework (Oh-My-Zsh + Powerlevel10k)"
+info "Phase 2: Stow dotfiles"
+
+# Pre-stow safety: if a previous OMZ install (or anything else) left a
+# regular .zshrc at $HOME, back it up so stow can take over cleanly.
+# This is idempotent — re-runs after a successful stow see the symlink
+# and don't disturb it.
+ZSHRC="$HOME/.zshrc"
+if [[ -e "$ZSHRC" && ! -L "$ZSHRC" ]]; then
+    warn "Found existing regular file at $ZSHRC (not a stow symlink). Backing up to ${ZSHRC}.bak before stow."
+    mv "$ZSHRC" "${ZSHRC}.bak"
+fi
+
+stow -d "$DOTFILES_DIR" -t "$HOME" common
+ok "Stowed 'common' package"
+
+if is_macos; then
+    stow -d "$DOTFILES_DIR" -t "$HOME" mac
+    ok "Stowed 'mac' package"
+fi
+
+ok "Phase 2 complete"
+
+# ─── Phase 3: Shell framework ────────────────────────────────────────────────
+
+info "Phase 3: Shell framework (Oh-My-Zsh + Powerlevel10k)"
 
 # Install Oh-My-Zsh
 if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
@@ -155,7 +183,7 @@ else
     ok "Powerlevel10k already installed"
 fi
 
-ok "Phase 2 complete"
+ok "Phase 3 complete"
 
 # ─── SSH signing key (macOS) ────────────────────────────────────────────────
 
@@ -189,20 +217,6 @@ if is_macos; then
         ok "SSH signing key and allowed signers already in place"
     fi
 fi
-
-# ─── Phase 3: Stow dotfiles ──────────────────────────────────────────────────
-
-info "Phase 3: Stow dotfiles"
-
-stow -d "$DOTFILES_DIR" -t "$HOME" common
-ok "Stowed 'common' package"
-
-if is_macos; then
-    stow -d "$DOTFILES_DIR" -t "$HOME" mac
-    ok "Stowed 'mac' package"
-fi
-
-ok "Phase 3 complete"
 
 # ─── Phase 4: Platform extras (macOS only) ───────────────────────────────────
 
