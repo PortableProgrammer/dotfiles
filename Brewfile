@@ -49,6 +49,7 @@ cask "slack"
 # Development
 cask "claude"
 cask "claude-code"
+cask "coteditor"  # moved from mas 2026-05-22 — same binary, brew installs reproducibly on VMs where App Store is unreachable
 cask "docker-desktop"
 # cask "powershell"  # 2026-05-22: removed from homebrew-cask; only powershell@preview remains, and it's deprecated (Gatekeeper check fails, disabled 2026-09-01). Install manually from https://github.com/PowerShell/PowerShell/releases if needed.
 cask "royal-tsx"
@@ -72,18 +73,17 @@ cask "jordanbaird-ice"
 cask "logi-options+"
 cask "monitorcontrol"
 cask "qlmarkdown"
+cask "the-unarchiver"  # moved from mas 2026-05-22 — same binary, brew installs reproducibly on VMs where App Store is unreachable
 
 # ─── Mac App Store ────────────────────────────────────────────────────────────
 
 mas "1Password for Safari", id: 1569813296
 mas "AdGuard for Safari", id: 1440147259
 mas "Codye", id: 1516894961
-mas "CotEditor", id: 1024640650
 mas "DaisyDisk", id: 411643860
 mas "Discovery", id: 1381004916
 mas "Magnet", id: 441258766
 mas "TestFlight", id: 899247664
-mas "The Unarchiver", id: 425424353
 mas "Userscripts", id: 1463298887
 mas "WiFiman", id: 1385561119
 mas "Xcode", id: 497799835
