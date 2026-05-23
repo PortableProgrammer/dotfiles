@@ -228,26 +228,58 @@ if is_macos; then
     cp "$DOTFILES_DIR"/resources/fonts/*.ttf "$HOME/Library/Fonts/" 2>/dev/null || true
     ok "Fonts installed"
 
-    # Import Smyck terminal theme
-    info "Importing Smyck.terminal theme..."
-    open "$DOTFILES_DIR/resources/Smyck.terminal" 2>/dev/null || true
-    defaults write com.apple.terminal "Default Window Settings" -string "Smyck" 2>/dev/null || true
-    defaults write com.apple.Terminal "Startup Window Settings" -string "Smyck" 2>/dev/null || true
+    # Configure Smyck terminal profile.
+    #
+    # Three problems the previous `open + defaults write` approach hit:
+    #   1. `open Smyck.terminal` creates "Smyck 1", "Smyck 2", ... on
+    #      every re-run — Terminal.app never deduplicates settings sets.
+    #   2. `defaults write com.apple.Terminal "Default Window Settings"`
+    #      doesn't stick — Terminal's running in-memory state overwrites
+    #      the plist when it next saves prefs.
+    #   3. The osascript font fix ran before Terminal had finished
+    #      registering the new settings set, so only worked on re-runs
+    #      where the import was already complete.
+    #
+    # Fix: probe with osascript first (idempotent — only import if
+    # "Smyck" doesn't exist), then poll until Terminal registers it,
+    # then do ALL configuration (font + default + startup) atomically
+    # via osascript against live Terminal state.
+    info "Configuring Smyck terminal profile..."
 
-    # The Smyck.terminal file ships a binary NSArchive Font blob that
-    # references some legacy font (Menlo or Monaco). Override it to
-    # MesloLGS NF (which we just installed via the fonts copy above) so
-    # Powerlevel10k glyphs render correctly. osascript edits the
-    # already-imported settings set in place; the visible Terminal
-    # window from the `open` import above stays open but its profile
-    # gets the right font.
-    osascript <<'APPLESCRIPT' 2>/dev/null || warn "Could not set Smyck profile font to MesloLGS NF — set manually via Terminal → Settings → Profiles → Smyck → Font."
+    if osascript -e 'tell application "Terminal" to get name of settings set "Smyck"' &>/dev/null; then
+        ok "Smyck profile already present — skipping import"
+    else
+        info "Importing Smyck.terminal..."
+        open "$DOTFILES_DIR/resources/Smyck.terminal" 2>/dev/null || true
+        # Poll up to 10s for Terminal to register the new settings set
+        for _ in {1..20}; do
+            if osascript -e 'tell application "Terminal" to get name of settings set "Smyck"' &>/dev/null; then
+                break
+            fi
+            sleep 0.5
+        done
+    fi
+
+    # Atomic configuration via osascript:
+    # - Font override (the .terminal file's binary NSArchive Font blob
+    #   references a legacy font; we want MesloLGS NF for p10k glyphs)
+    # - Default profile (used for new Terminal windows)
+    # - Startup profile (used when Terminal first launches)
+    # osascript operates on live Terminal state, sidestepping the
+    # cfprefsd cache issues that plagued `defaults write`.
+    if osascript <<'APPLESCRIPT' &>/dev/null
         tell application "Terminal"
             set font name of settings set "Smyck" to "MesloLGS NF"
             set font size of settings set "Smyck" to 12
+            set default settings to settings set "Smyck"
+            set startup settings to settings set "Smyck"
         end tell
 APPLESCRIPT
-    ok "Smyck.terminal imported and configured as default and startup theme (font: MesloLGS NF)"
+    then
+        ok "Smyck configured (default + startup profile, font: MesloLGS NF)"
+    else
+        warn "Could not configure Smyck profile via osascript. Configure manually: Terminal → Settings → Profiles → select Smyck → Default + set font to MesloLGS NF."
+    fi
 
     # Configure Dock
     echo ""
