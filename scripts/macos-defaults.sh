@@ -46,7 +46,9 @@ defaults write com.apple.print.PrintingPrefs "Quit When Finished" -bool true
 defaults write -g AppleActionOnDoubleClick -string "Maximize"
 
 # Remove duplicates in the "Open With" menu (also see `lscleanup` alias)
-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user
+# Dropped `-kill` flag: removed in newer macOS releases as "dangerous and
+# no longer useful" — `-r` (rebuild) is the remaining useful operation.
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -r -domain local -domain system -domain user
 
 ###############################################################################
 # Energy saving                                                               #
@@ -163,6 +165,26 @@ defaults write com.apple.dock enable-spring-load-actions-on-all-items -bool true
 # Safari                                                                      #
 ###############################################################################
 
+# Safari is sandboxed: its preferences live in
+#   ~/Library/Containers/com.apple.Safari/Data/Library/Preferences/
+# Writing to them via `defaults` requires Full Disk Access (FDA) for the
+# terminal running this script. Without FDA the script would otherwise
+# print 40+ "Could not write domain" lines and continue.
+# Pre-flight probe: write+delete a throwaway key. If it fails, skip the
+# entire Safari section and tell the operator how to fix.
+if defaults write com.apple.Safari __dotfiles_fda_probe -bool true 2>/dev/null; then
+    defaults delete com.apple.Safari __dotfiles_fda_probe 2>/dev/null || true
+    SAFARI_WRITABLE=true
+else
+    SAFARI_WRITABLE=false
+    echo "[warn] Cannot write Safari preferences — Full Disk Access not granted to this terminal."
+    echo "[warn] Grant via System Settings → Privacy & Security → Full Disk Access → enable for"
+    echo "[warn] your terminal app (Terminal / iTerm2 / Ghostty / Warp / etc.), then re-run"
+    echo "[warn] scripts/macos-defaults.sh to apply Safari preferences."
+fi
+
+if [[ "$SAFARI_WRITABLE" == "true" ]]; then
+
 # Disable AutoFill
 defaults write com.apple.Safari AutoFillCreditCardData -bool false
 defaults write com.apple.Safari AutoFillFromAddressBook -bool false
@@ -234,6 +256,8 @@ defaults write com.apple.Safari WarnAboutFraudulentWebsites -bool true
 
 # Update extensions automatically
 defaults write com.apple.Safari InstallExtensionUpdatesAutomatically -bool true
+
+fi  # end Safari section (SAFARI_WRITABLE gate)
 
 ###############################################################################
 # Clock                                                                       #

@@ -41,15 +41,21 @@ If the manual install fails with `Unknown Error` (`ISErrorDomain Code=-128`):
 
 Some Brewfile entries — currently just `swiftlint` — require a **full Xcode installation**, not just CLT. Xcode is a ~15 GB install and takes 20+ minutes; only do this if you actively need swiftlint or other Xcode-dependent tooling. If you skip Xcode, expect `swiftlint` to fail during `install.sh`; everything else still installs.
 
-### 4. Grant Terminal "App Management" permission (macOS 14+)
+### 4. Grant Terminal "App Management" and "Full Disk Access" permissions
 
-macOS Sonoma (14) and later require explicit user consent before an app can modify other installed apps. Several Brewfile casks (anything `.pkg`-based that writes to `/Applications`) trip this gate during install — you'll see a `chown` or permission error mid-script.
+Two macOS Privacy & Security gates that `install.sh` and its sub-scripts trip.
 
-**Pre-approve before running `install.sh`:**
+**App Management** (macOS 14+) — required for `.pkg`-based casks (docker-desktop, microsoft-office, logi-options+, wireshark-app) to write to `/Applications`. Without it: `chown`/permission errors mid-install.
 
-1. System Settings → Privacy & Security → App Management.
-2. Toggle on whichever terminal you're running `install.sh` from (Terminal, iTerm2, Ghostty, Warp, etc.).
-3. **Critical**: if macOS prompts to restart the terminal app for the change to take effect, accept. Granting this permission mid-install means re-running the script from the beginning (the sudo cache is cleared with the terminal restart).
+**Full Disk Access (FDA)** — required for `scripts/macos-defaults.sh` to write Safari preferences (Safari is sandboxed; its prefs live in `~/Library/Containers/com.apple.Safari/...`). Without it: ~40 lines of `Could not write domain` errors during the macOS defaults phase, and Safari prefs don't apply.
+
+**Pre-approve both before running `install.sh`:**
+
+1. System Settings → Privacy & Security → **App Management** → toggle on your terminal (Terminal, iTerm2, Ghostty, Warp, etc.).
+2. System Settings → Privacy & Security → **Full Disk Access** → toggle on your terminal.
+3. **Critical**: if macOS prompts to restart the terminal app for either change to take effect, accept. Granting these mid-install means re-running the script (the sudo cache is cleared with the terminal restart).
+
+`scripts/macos-defaults.sh` will detect a missing FDA grant and skip the Safari section with a clean warning rather than spamming errors — you can grant FDA later and re-run just that script to apply Safari prefs.
 
 ---
 

@@ -54,7 +54,7 @@ cask "docker-desktop"
 # cask "powershell"  # 2026-05-22: removed from homebrew-cask; only powershell@preview remains, and it's deprecated (Gatekeeper check fails, disabled 2026-09-01). Install manually from https://github.com/PowerShell/PowerShell/releases if needed.
 cask "royal-tsx"
 cask "visual-studio-code@insiders"
-cask "wireshark"
+cask "wireshark-app"  # 2026-05-23: renamed upstream from 'wireshark' to 'wireshark-app'
 
 # Productivity
 cask "microsoft-office"  # bundles OneDrive — do NOT also list cask "onedrive" (conflicts)
