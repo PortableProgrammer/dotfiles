@@ -180,21 +180,13 @@ If you're the operator setting up the first project on a new machine: this is wh
 
 ## 12. Verification
 
-A `bin/verify-workstation.sh` should exit cleanly. Run it now to catch anything the above missed:
-
 ```bash
-~/Code/dotfiles/bin/verify-workstation.sh
+~/dotfiles/bin/verify-workstation.sh
 ```
 
 > [!NOTE]
-> If that script doesn't exist yet, it's on the backlog — see the dotfiles ideating notebook.
+> Script not built yet — backlog item. Until it exists, sanity-check manually: open a new terminal (Smyck profile + glyphs working), `op whoami`, `gh auth status`, `kubectl get nodes` (if homelab is bootstrapped).
 
-## When this doc lies
+---
 
-This checklist will rot. macOS reshuffles System Settings paths every couple of releases; 1Password ships UI changes; Brewfile gains and loses entries. When you find an inaccuracy:
-
-1. Fix it in this file in the same session, while it's fresh.
-2. Commit with a `docs(FIRST-RUN):` prefix so the drift trail is visible.
-3. If you found the inaccuracy during a fresh-machine bootstrap, also bump `install.sh` if the gap could be automated.
-
-The point of the doc is to be true at any moment, not to be retroactively reconstructed.
+*Found a gap on a fresh-machine bootstrap? Fix it here in the same session and commit with a `docs(FIRST-RUN):` prefix. If the gap could be automated, also bump `install.sh`.*

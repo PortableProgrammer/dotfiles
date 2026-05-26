@@ -13,6 +13,19 @@ sudo -v
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
 ###############################################################################
+# Authentication                                                              #
+###############################################################################
+
+# Enable Touch ID for sudo. Idempotent: only writes /etc/pam.d/sudo_local
+# if it doesn't already exist. Touch ID does NOT need to be enrolled
+# yet — the PAM stack falls through to the password module if TID is
+# unavailable or not enrolled, so this is safe to apply on any host
+# (including VMs without TID hardware).
+if [[ ! -f /etc/pam.d/sudo_local && -f /etc/pam.d/sudo_local.template ]]; then
+    sudo sh -c 'cp /etc/pam.d/sudo_local.template /etc/pam.d/sudo_local && sed -i "" "s/^#auth/auth/" /etc/pam.d/sudo_local'
+fi
+
+###############################################################################
 # General UI/UX                                                               #
 ###############################################################################
 
