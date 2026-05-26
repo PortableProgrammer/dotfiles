@@ -1,61 +1,47 @@
 # First-Run Checklist
 
-Linear runbook for a fresh machine. Walk it from the top. The flow is:
+Linear runbook for a fresh macOS install. Walk from the top.
 
-1. **Pre-install gates** (steps 1–4): prevent specific failures by handling things `install.sh` can't.
-2. **Run `./install.sh`** (step 5): automated bootstrap.
-3. **Post-install identity + setup** (steps 6–11): manual interactions the installer deliberately doesn't (or can't) automate.
-
-If you're the original operator, this is the recovery runbook. If you've forked this repo, the post-install steps will need adjustment for your own accounts.
+1. **Pre-install gates** (steps 1–4): things `install.sh` can't do.
+2. **Run `./install.sh`** (step 5).
+3. **Post-install** (steps 6–12): identity, permissions, projects.
 
 ---
 
 ## Pre-install gates
 
-These steps prevent specific failures during `install.sh`. Each one is a 30-second action that saves a re-run cycle.
+### 1. Sign in to the App Store and verify a download works
 
-### 1. Verify the App Store works (bare-metal only)
+Required for the `mas` block of the Brewfile. `mas` cannot sign in or prompt — it uses the App Store GUI's session.
 
-The `mas` CLI tool that `install.sh` uses to install App Store apps cannot sign you in or pop dialogs — it relies entirely on the App Store GUI's auth session. So **sign in *and* verify a real download works** before you trust `mas`:
+1. Open the App Store, click your account icon (bottom-left), sign in.
+2. **Install one free app manually** (e.g. Apple Configurator 2). If this fails, `mas` will fail the same way.
+3. Leave App Store running during `install.sh`.
 
-1. Open the App Store app.
-2. Click your account icon (bottom-left) and sign in with your Apple ID. Accept any terms / 2FA prompts.
-3. **Install one free app manually** (any free thing — Apple Configurator 2, GarageBand, anything that doesn't cost money). If this succeeds, `mas` will work too.
-4. **Leave the App Store running** during `install.sh`.
+If the manual install errors with `ISErrorDomain Code=-128 "Unknown Error"`: check your phone for a "new device" approval, allow up to 24h for Apple ID security review, or confirm a payment method is on file.
 
-If the manual install fails with `Unknown Error` (`ISErrorDomain Code=-128`):
-- New device requires approval from an already-signed-in device (check your phone or another Mac for a pending verification prompt).
-- Apple ID security review (sometimes triggered for new-device sign-in, can take up to 24h).
-- Payment method missing or rejected — Apple sometimes requires a valid payment method on file even for free apps when the device is brand-new.
+> [!IMPORTANT]
+> **Virtualized macOS** — skip this step. Per [Apple Support 120468](https://support.apple.com/en-us/120468), the App Store is not available in VMs. `install.sh` detects VMs (`sysctl -n hw.model` matching `VirtualMac*`/`VMware*`/`Parallels*`/`QEMU`) and skips the `mas` block automatically.
 
-**Virtualized macOS — skip this step:** per [Apple Support article 120468](https://support.apple.com/en-us/120468), iCloud services including the Mac App Store are **not available on virtualized macOS**, even with a valid Apple ID and a verified trusted device. This is a platform-level restriction, not a configuration problem. `install.sh` detects virtualized macOS (`sysctl -n hw.model` matching `VirtualMac*`, `VMware*`, `Parallels*`, or `QEMU`) and **automatically skips the `mas` block**. The App Store apps will need to be installed on a bare-metal target.
+### 2. Trigger Xcode Command Line Tools
 
-### 2. Trigger Xcode Command Line Tools (CLT)
-
-`install.sh` triggers the CLT install dialog automatically (via `xcode-select --install`), but you may see this from a different vector first — running `git --version`, `git clone`, or any other developer tool on a vanilla macOS install pops the same dialog. **Click "Install" in the popup and wait for it to complete** before letting `install.sh` proceed past Phase 1. If CLT isn't installed, formulae that need a compiler will fail.
+`install.sh` runs `xcode-select --install` automatically. Click **Install** in the popup and wait for it to finish before proceeding past Phase 1.
 
 > [!TIP]
-> On a VM, the CLT install dialog can hide behind a full-screen terminal — `Cmd+Tab` / Mission Control on the VM may not surface it. If the dialog seems missing, shrink the terminal window to find it.
+> On a VM, the CLT dialog can hide behind a full-screen terminal. Shrink the terminal if you don't see it.
 
-### 3. (Optional) Install full Xcode from the App Store
+### 3. (Optional) Install full Xcode
 
-Some Brewfile entries — currently just `swiftlint` — require a **full Xcode installation**, not just CLT. Xcode is a ~15 GB install and takes 20+ minutes; only do this if you actively need swiftlint or other Xcode-dependent tooling. If you skip Xcode, expect `swiftlint` to fail during `install.sh`; everything else still installs.
+`swiftlint` requires full Xcode (~15 GB, App Store). Skip unless you need it; the rest of `install.sh` runs fine without.
 
-### 4. Grant Terminal "App Management" and "Full Disk Access" permissions
+### 4. Grant Terminal "App Management" and "Full Disk Access"
 
-Two macOS Privacy & Security gates that `install.sh` and its sub-scripts trip.
+System Settings → Privacy & Security → toggle your terminal on both:
 
-**App Management** (macOS 14+) — required for `.pkg`-based casks (docker-desktop, microsoft-office, logi-options+, wireshark-app) to write to `/Applications`. Without it: `chown`/permission errors mid-install.
+- **App Management** — required for `.pkg` casks (docker-desktop, microsoft-office, etc.) to write to `/Applications`.
+- **Full Disk Access** — required for `scripts/macos-defaults.sh` to write Safari preferences (sandboxed app).
 
-**Full Disk Access (FDA)** — required for `scripts/macos-defaults.sh` to write Safari preferences (Safari is sandboxed; its prefs live in `~/Library/Containers/com.apple.Safari/...`). Without it: ~40 lines of `Could not write domain` errors during the macOS defaults phase, and Safari prefs don't apply.
-
-**Pre-approve both before running `install.sh`:**
-
-1. System Settings → Privacy & Security → **App Management** → toggle on your terminal (Terminal, iTerm2, Ghostty, Warp, etc.).
-2. System Settings → Privacy & Security → **Full Disk Access** → toggle on your terminal.
-3. **Critical**: if macOS prompts to restart the terminal app for either change to take effect, accept. Granting these mid-install means re-running the script (the sudo cache is cleared with the terminal restart).
-
-`scripts/macos-defaults.sh` will detect a missing FDA grant and skip the Safari section with a clean warning rather than spamming errors — you can grant FDA later and re-run just that script to apply Safari prefs.
+If macOS prompts to restart the terminal, accept. **Granting these mid-install means re-running the script from scratch**, so do it now.
 
 ---
 
@@ -66,126 +52,67 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-### What to expect during the run
-
-- **One sudo prompt at the start** for the script's own sudo keep-alive. After that, sudo stays cached.
-- **Additional password prompts** for certain casks (`docker-desktop`, `wireshark`, `microsoft-office`, `logi-options+`, and similar `.pkg`-based installers). These come from macOS Authorization Services — they bypass the `sudo` cache and ask for your password directly. Not a bug.
-- **Permission popups** for some apps that need additional macOS privileges during install (e.g. Logi Options+ requesting Bluetooth and Input Monitoring). You can interact with these while the script continues in the background.
-- **`brew bundle` partial failure is tolerated** — the script continues to subsequent phases. After the script finishes, address the failed items and re-run `./install.sh` to retry. `brew bundle` is idempotent; already-installed entries are skipped.
-
-If the script aborts mid-way (e.g. a stow conflict, network drop), fix the cause and re-run — every phase is idempotent.
+Expect multiple password prompts during `.pkg` cask installs (these bypass sudo cache by design). `brew bundle` partial failures are tolerated — the script continues to Phases 2-5. Re-run after fixing failures; every phase is idempotent.
 
 ---
 
-## Post-install: identity, permissions, and per-project setup
+## Post-install
 
-After `install.sh` completes, walk these in order.
+### 6. 1Password
 
-## 6. Sign in to 1Password
-
-Required first — almost everything downstream pulls credentials from 1Password.
-
-1. Launch the 1Password desktop app (installed by `install.sh` via Brewfile).
-2. Enter your **account URL**, **email**, **Secret Key**, and **Master Password** — all four come from the printed Emergency Kit.
-3. Approve the 2FA prompt from your authenticator.
-4. **Enable the SSH agent**: 1Password → Settings → Developer → check *Use the SSH agent*.
-5. **Enable biometric unlock**: 1Password → Settings → Security → enable Touch ID (macOS) or your equivalent.
-6. Open a fresh terminal and verify:
+1. Launch the 1Password app, sign in via Emergency Kit (account URL, email, Secret Key, Master Password).
+2. Settings → Developer → enable **Use the SSH agent**.
+3. Settings → Security → enable Touch ID unlock.
+4. Verify:
 
     ```bash
-    op whoami         # should print your account info
-    ssh-add -L        # should list keys served by the 1Password agent
+    op whoami
+    ssh-add -L
     ```
 
-If `op whoami` fails, run `op signin` and follow the prompt.
-
-## 7. Authenticate GitHub CLI
+### 7. GitHub CLI
 
 ```bash
-gh auth login
-# Choose: GitHub.com → HTTPS → Authenticate via browser
-```
-
-Verify:
-
-```bash
+gh auth login        # GitHub.com → HTTPS → browser
 gh auth status
 ```
 
-Once `gh` is authenticated and the 1Password SSH agent is serving your key, all subsequent `git clone` commands work over either HTTPS or SSH.
+### 8. Container runtime
 
-## 8. Start your container runtime
+Launch Docker Desktop from `/Applications`, accept the license, sign in if required. Verify with `docker ps`.
 
-`install.sh` installs the runtime via Brewfile but doesn't launch or license it.
+### 9. macOS system permissions
 
-**Docker Desktop:**
+System Settings → Privacy & Security:
 
-1. Launch Docker Desktop from `/Applications`.
-2. Accept the license terms.
-3. Sign in if your usage tier requires it.
-4. Verify: `docker ps` runs without error.
+- **Full Disk Access**: enable for VS Code and any backup/sync tools (Terminal was already done in step 4).
+- **Accessibility**: grant to window-management / automation tools you've installed.
+- **Developer Tools**: enable for your terminal.
 
-**Colima** (alternative, no GUI):
+Touch ID & Password: enroll Touch ID. (`install.sh` already configured PAM to use it for sudo once enrolled.)
 
-```bash
-colima start
-docker ps
-```
+Browser: install the 1Password browser extension on first launch.
 
-Pick one and stick with it — projects with devcontainers don't care which runs, but mixing both wastes resources.
+### 10. Network access
 
-## 9. macOS system permissions (macOS only)
-
-These can only be granted by hand via System Settings. Some apps will prompt on first use; others have to be granted proactively.
-
-**System Settings → Privacy & Security:**
-
-- **Full Disk Access**: enable for Terminal (or iTerm2 / Ghostty / whatever you use), VS Code, and any tool that needs to read protected directories. Without this, some `git` operations and most backup tools fail silently.
-- **Accessibility**: grant to any window-management or automation tool you've installed (Rectangle, Raycast, etc.).
-- **Developer Tools**: enable for your terminal, so it can run unsigned binaries Homebrew installs.
-
-**System Settings → Touch ID & Password:**
-
-- Enroll Touch ID.
-- (Optional) Enable Touch ID for sudo: `sudo sh -c 'cp /etc/pam.d/sudo_local.template /etc/pam.d/sudo_local && sed -i "" "s/^#auth/auth/" /etc/pam.d/sudo_local'`
-
-**Browser:**
-
-- Install the 1Password browser extension when prompted on first launch of your browser. Sign in.
-
-## 10. Network access
-
-If you operate services that live behind a VPN, get on the VPN before continuing. The mechanism depends on your setup (UniFi Teleport, WireGuard, Tailscale, corporate VPN, etc.) — install/configure per your project's documentation, not this repo.
-
-Verify by reaching a known internal hostname:
+If your services are behind a VPN (UniFi Teleport / WireGuard / Tailscale / etc.), connect now. Verify:
 
 ```bash
 ping <some-internal-host>
 ```
 
-If that fails, downstream project bootstrap (kubectl, internal git, etc.) will also fail.
+### 11. Per-project bootstrap
 
-## 11. Per-project bootstrap
+For each project, follow its own `docs/operator-bootstrap.md` (or equivalent). Project bootstrap typically pulls SOPS age keys, kubeconfig, and Ansible vault passwords from 1Password via `op read`.
 
-`install.sh` and the steps above give you a working **operator workstation** — shell, editor, package manager, identity, network. They don't set up any specific project.
-
-For each project you operate, follow its own bootstrap doc (typically `docs/operator-bootstrap.md` or similar in the project repo). Project bootstrap is where you'll:
-
-- Clone the project repo
-- Materialize the irreducible filesystem secrets (e.g. SOPS age keys, kubeconfig, Ansible vault password) from 1Password via `op read`
-- Install project-specific tools not in the global Brewfile
-- Run a project-specific verification script
-
-If you're the operator setting up the first project on a new machine: this is where you go next.
-
-## 12. Verification
+### 12. Verification
 
 ```bash
 ~/dotfiles/bin/verify-workstation.sh
 ```
 
 > [!NOTE]
-> Script not built yet — backlog item. Until it exists, sanity-check manually: open a new terminal (Smyck profile + glyphs working), `op whoami`, `gh auth status`, `kubectl get nodes` (if homelab is bootstrapped).
+> Script not built yet — backlog item. Manual sanity check: new terminal shows Smyck + glyphs, `op whoami`, `gh auth status`, `kubectl get nodes` (if a project's been bootstrapped).
 
 ---
 
