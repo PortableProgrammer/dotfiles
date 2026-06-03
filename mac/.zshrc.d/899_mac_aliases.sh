@@ -2,10 +2,10 @@
 alias la='ls -AgGvLhp'
 
 # Make updating homebrew a bit easier
-alias brewup=`echo -e "Brew Update:\n" && brew update && echo -e "Brew Upgrade:\n" && brew upgrade && echo -e "Brew Autoremove:\n" && brew autoremove && echo -e "Brew Cleanup:\n" && brew cleanup`
+alias brewup='echo -e "Brew Update:\n" && brew update && echo -e "Brew Upgrade:" && brew upgrade && echo -e "Brew Autoremove:" && brew autoremove && echo -e "Brew Cleanup:" && brew cleanup'
 
 # Override all-in-one update
-alias update=`echo -e "macOS Software Update:\n" && sudo softwareupdate -i -a; echo -e "OMZ Update:\n" &&  omz update; brewup`
+alias update='echo -e "macOS Software Update:" && softwareupdate -i -a; echo -e "\nOMZ Update:" &&  omz update; brewup'
 
 # Can't ever remember ncdu, so alias it up a bit
 alias treesize='ncdu --color dark -x'
