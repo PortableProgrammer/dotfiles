@@ -5,7 +5,7 @@ alias sudo='sudo '
 alias la='ls -AgGvLhNp --group-directories-first'
 
 # Create a single update alias that will do all the things
-alias update='echo -e "APT Update:\n" && sudo apt update -y && echo -e "\nAPT Full Upgrade:\n" && sudo apt full-upgrade -y && echo -e "\nAPT Autoremove:\n" && sudo apt autoremove -y && echo -e "\nAPT Clean:\n" && sudo apt clean -y'
+alias update='echo -e "OMZ Update:\n" && omz update && echo -e "APT Update:\n" && sudo apt update -y && echo -e "\nAPT Full Upgrade:\n" && sudo apt full-upgrade -y && echo -e "\nAPT Autoremove:\n" && sudo apt autoremove -y && echo -e "\nAPT Clean:\n" && sudo apt clean -y'
 
 # Can't ever remember ncdu, so alias it up a bit
 # Also sudo it
