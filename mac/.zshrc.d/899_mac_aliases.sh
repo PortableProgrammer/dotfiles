@@ -5,7 +5,10 @@ alias la='ls -AgGvLhp'
 alias brewup='echo -e "Brew Update:\n" && brew update && echo -e "Brew Upgrade:" && brew upgrade && echo -e "Brew Autoremove:" && brew autoremove && echo -e "Brew Cleanup:" && brew cleanup'
 
 # Override all-in-one update
-alias update='echo -e "macOS Software Update:" && softwareupdate -i -a; echo -e "\nOMZ Update:" &&  omz update; brewup'
+# OMZ runs LAST: `omz update` ends by `exec`-ing a fresh shell when it actually
+# pulls a new version (lib/cli.zsh), which replaces this process — anything after
+# it in the chain is skipped. Putting it last means brewup always completes first.
+alias update='echo -e "macOS Software Update:" && softwareupdate -i -a; brewup; echo -e "\nOMZ Update:" && omz update'
 
 # Can't ever remember ncdu, so alias it up a bit
 alias treesize='ncdu --color dark -x'

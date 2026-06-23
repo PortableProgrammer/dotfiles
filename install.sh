@@ -72,6 +72,17 @@ if is_macos; then
         ok "Homebrew already installed"
     fi
 
+    # Homebrew 6.0+ enforces tap trust: formulae from third-party taps are
+    # silently skipped during install/upgrade/cleanup until explicitly trusted.
+    # Pre-trust the specific Brewfile formula that lives in a third-party tap
+    # (narrower than trusting the whole tap, per Homebrew's recommendation) so
+    # `brew bundle` below can actually install fluxcd/tap/flux. Idempotent; the
+    # `|| warn` tolerates older Homebrew that lacks the `brew trust` subcommand.
+    if brew help trust &>/dev/null; then
+        brew trust --formula fluxcd/tap/flux || \
+            warn "Could not trust fluxcd/tap/flux. flux may be skipped during bundle."
+    fi
+
     info "Installing Homebrew packages from Brewfile..."
     # Tolerate partial failure so Phases 2-5 can still run. Common reasons
     # individual Brewfile entries fail on a fresh machine:

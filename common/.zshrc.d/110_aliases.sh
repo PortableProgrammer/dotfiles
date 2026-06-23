@@ -5,7 +5,10 @@ alias sudo='sudo '
 alias la='ls -AgGvLhNp --group-directories-first'
 
 # Create a single update alias that will do all the things
-alias update='echo -e "OMZ Update:\n" && omz update && echo -e "APT Update:\n" && sudo apt update -y && echo -e "\nAPT Full Upgrade:\n" && sudo apt full-upgrade -y && echo -e "\nAPT Autoremove:\n" && sudo apt autoremove -y && echo -e "\nAPT Clean:\n" && sudo apt clean -y'
+# OMZ runs LAST: `omz update` ends by `exec`-ing a fresh shell when it pulls a new
+# version (lib/cli.zsh), replacing this process — anything after it is skipped.
+# With it first (as before), an OMZ update silently aborted every apt step below.
+alias update='echo -e "APT Update:\n" && sudo apt update -y && echo -e "\nAPT Full Upgrade:\n" && sudo apt full-upgrade -y && echo -e "\nAPT Autoremove:\n" && sudo apt autoremove -y && echo -e "\nAPT Clean:\n" && sudo apt clean -y; echo -e "\nOMZ Update:\n" && omz update'
 
 # Can't ever remember ncdu, so alias it up a bit
 # Also sudo it
