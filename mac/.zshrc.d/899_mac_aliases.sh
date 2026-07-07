@@ -2,7 +2,7 @@
 alias la='ls -AgGvLhp'
 
 # Make updating homebrew a bit easier
-alias brewup='echo -e "Brew Update:\n" && brew update && echo -e "Brew Upgrade:" && brew upgrade --no-ask --greedy && echo -e "Brew Autoremove:" && brew autoremove && echo -e "Brew Cleanup:" && brew cleanup'
+alias brewup='echo -e "Brew Update:\n" && brew update && echo -e "Brew Upgrade:" && brew upgrade --no-ask --greedy --no-quit && echo -e "Brew Autoremove:" && brew autoremove && echo -e "Brew Cleanup:" && brew cleanup'
 
 # Override all-in-one update
 # OMZ runs LAST: `omz update` ends by `exec`-ing a fresh shell when it actually
