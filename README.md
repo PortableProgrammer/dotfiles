@@ -73,6 +73,8 @@ dotfiles/
 ├── scripts/
 │   ├── dock.sh                      # Dock layout configuration (via dockutil)
 │   └── macos-defaults.sh            # macOS system defaults (~300 settings)
+├── bin/
+│   └── verify-workstation.sh        # Post-bootstrap sanity check (FIRST-RUN §12)
 ├── Brewfile                         # Homebrew formulae, casks, and App Store apps (macOS)
 └── install.sh                       # Full bootstrap entry point
 ```

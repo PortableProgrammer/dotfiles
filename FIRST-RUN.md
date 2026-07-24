@@ -103,7 +103,21 @@ ping <some-internal-host>
 
 ### 11. Per-project bootstrap
 
-For each project, follow its own `docs/operator-bootstrap.md` (or equivalent). Project bootstrap typically pulls SOPS age keys, kubeconfig, and Ansible vault passwords from 1Password via `op read`.
+Bootstrap `claude-ops` first. It's the AI-session substrate — memory, ideating notes, cross-project hand-offs — that every Claude Code session on this machine reads and writes; skip it and substrate writes are silently lost until it's in place. Requires the 1Password SSH agent (step 6) and `gh` auth (step 7).
+
+```bash
+gh repo clone PortableProgrammer/claude-ops ~/Code/claude-ops
+cd ~/Code/claude-ops
+cp host-mapping.example.yaml host-mapping.yaml
+$EDITOR host-mapping.yaml
+./install.sh --dry-run
+./install.sh
+```
+
+> [!NOTE]
+> `dotfiles-app-state` is intentionally absent here — it doesn't exist yet ([PortableProgrammer/claude-ops#21](https://github.com/PortableProgrammer/claude-ops/issues/21)).
+
+For every other project, follow its own `docs/operator-bootstrap.md` (or equivalent). Project bootstrap typically pulls SOPS age keys, kubeconfig, and Ansible vault passwords from 1Password via `op read`.
 
 ### 12. Verification
 
@@ -111,8 +125,10 @@ For each project, follow its own `docs/operator-bootstrap.md` (or equivalent). P
 ~/dotfiles/bin/verify-workstation.sh
 ```
 
-> [!NOTE]
-> Script not built yet — backlog item. Manual sanity check: new terminal shows Smyck + glyphs, `op whoami`, `gh auth status`, `kubectl get nodes` (if a project's been bootstrapped).
+Checks (read-only): 1Password CLI signed in, GitHub CLI authenticated, `kubectl get nodes` if a kubeconfig exists (skipped otherwise), and the claude-ops substrate — including its own `verify.sh --online` — is present and healthy.
+
+> [!TIP]
+> Mid-bootstrap, before the script's prerequisites are in place, check manually: new terminal shows Smyck + glyphs, `op whoami`, `gh auth status`, `kubectl get nodes` (if a project's been bootstrapped).
 
 ---
 
