@@ -64,6 +64,7 @@ dotfiles/
 │   ├── .ssh/
 │   │   └── config                   # SSH config (1Password agent)
 │   └── .zshrc.d/
+│       ├── 897_brew_drift.sh        # Warns when brew install/uninstall diverges from Brewfile
 │       ├── 898_mac_env.sh           # 1Password SSH agent
 │       └── 899_mac_aliases.sh       # macOS-specific aliases
 ├── resources/
@@ -74,6 +75,7 @@ dotfiles/
 │   ├── dock.sh                      # Dock layout configuration (via dockutil)
 │   └── macos-defaults.sh            # macOS system defaults (~300 settings)
 ├── bin/
+│   ├── brew-drift.sh                # Read-only Brewfile drift report (both directions)
 │   └── verify-workstation.sh        # Post-bootstrap sanity check (FIRST-RUN §12)
 ├── Brewfile                         # Homebrew formulae, casks, and App Store apps (macOS)
 └── install.sh                       # Full bootstrap entry point
@@ -106,7 +108,7 @@ Shell configuration is split into numbered modules that load in sorted order. Us
 | `0xx` | Early initialization | Screen auto-attach, system info display |
 | `1xx` | Framework & aliases | Oh-My-Zsh setup, shell aliases |
 | `2xx` | Bindings & completion | Key bindings, tab completion |
-| `8xx` | Platform-specific | macOS environment, macOS aliases |
+| `8xx` | Platform-specific | Brewfile drift warning, macOS environment, macOS aliases |
 | `9xx` | Final setup | Powerlevel10k prompt |
 
 To add a new module, create a `.sh` file in the appropriate `common/.zshrc.d/` or `mac/.zshrc.d/` directory with a number that places it in the right loading order.
@@ -140,6 +142,41 @@ To add a new module, create a `.sh` file in the appropriate `common/.zshrc.d/` o
 ## Homebrew Packages (macOS)
 
 Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`. To add or remove packages, edit the Brewfile and re-run `install.sh` (or `brew bundle --file=~/dotfiles/Brewfile` directly).
+
+### Checking for drift
+
+`brew` does not update the Brewfile when you install something by hand, so the two diverge silently. [`bin/brew-drift.sh`](bin/brew-drift.sh) reports the gap in both directions — read-only, it never installs or removes anything:
+
+```bash
+./bin/brew-drift.sh
+```
+
+| Direction | Meaning | Failure mode |
+| ----------- | --------- | -------------- |
+| Installed but undeclared | You `brew install`ed it and never added it | Lost on the next machine, or deleted by `brew bundle cleanup` |
+| Declared but unsatisfied | The Brewfile names something brew doesn't manage — usually an app installed by hand into `/Applications` | **Silent** — works here, missing on rebuild |
+| Orphaned dependencies | Left behind after uninstalling a formula | Slow accretion |
+
+Only packages installed *on request* count — dependencies are correctly ignored, so you never declare a package's dep tree. Exits `1` on drift, so it works as a gate; `--quiet` suppresses output for hook use.
+
+For an app that already exists in `/Applications` but isn't brew-managed, adopt rather than reinstall:
+
+```bash
+brew install --cask --adopt <name>
+```
+
+#### Drift warnings at the keyboard
+
+[`mac/.zshrc.d/897_brew_drift.sh`](mac/.zshrc.d/897_brew_drift.sh) wraps `brew` and speaks up the moment an interactive install or uninstall diverges from the Brewfile:
+
+```
+$ brew install knockknock
+[brewfile] knockknock is installed but NOT declared — it will be lost on the next machine.
+```
+
+It **writes nothing.** Auto-editing the Brewfile would turn a record of *intent* into a mirror of machine state — deleting the line and its explanatory comment on uninstall, and generating paired add/remove commits for packages you try and discard. A warning you ignore leaves no artifact.
+
+It only sees what you type interactively; installs from `install.sh`, Ansible, or any script bypass it entirely. It's a latency fix, not a guarantee — `brew-drift.sh` remains the safety net. Silence it for a session with `BREW_DRIFT_WARN=0`.
 
 ### Formulae
 
