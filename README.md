@@ -145,10 +145,10 @@ Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`.
 
 | Category | Packages |
 | ---------- | ---------- |
-| Shell & dotfiles | stow, fd, fastfetch, git, nano, ncdu, zsh |
-| Homelab / infra | ansible, ansible-lint, fluxcd/tap/flux, helm, k9s, kubernetes-cli, pre-commit, sops, teleport |
-| Development | gh, swiftlint |
-| Utilities | dockutil, gnupg, httpie, jq, mas, nmap, socat, watch |
+| Shell & dotfiles | fastfetch, fd, git, nano, ncdu, stow, zsh |
+| Homelab / infra | ansible, ansible-lint, fluxcd/tap/flux, helm, k9s, kubernetes-cli, powershell, pre-commit, sops, teleport |
+| Development | gh, shellcheck, swiftlint |
+| Utilities | dockutil, gnupg, httpie, jq, libsmi, mas, mole, nmap, socat, watch, yq |
 
 ### Casks
 
@@ -156,12 +156,11 @@ Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`.
 | ---------- | ------------- |
 | Browsers | google-chrome |
 | Communication | slack |
-| Development | claude, claude-code, docker-desktop, powershell, royal-tsx, visual-studio-code@insiders, wireshark |
-| Gaming | nvidia-geforce-now, steam |
-| Productivity | microsoft-office, onedrive, transmit |
+| Development | claude, coteditor, docker-desktop, royal-tsx, visual-studio-code@insiders, wireshark-app |
+| Productivity | microsoft-office, transmit |
 | Security | 1password, 1password-cli |
 | System monitoring | istat-menus |
-| System utilities | appcleaner, jordanbaird-ice, logi-options+, monitorcontrol, qlmarkdown |
+| System utilities | appcleaner, jordanbaird-ice, logi-options+, monitorcontrol, qlmarkdown, the-unarchiver |
 
 ### Mac App Store (via `mas`)
 
@@ -170,17 +169,23 @@ Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`.
 | 1Password for Safari | 1569813296 |
 | AdGuard for Safari | 1440147259 |
 | Codye | 1516894961 |
-| CotEditor | 1024640650 |
 | DaisyDisk | 411643860 |
+| DevCleaner | 1388020431 |
 | Discovery | 1381004916 |
 | Magnet | 441258766 |
 | TestFlight | 899247664 |
-| The Unarchiver | 425424353 |
 | Userscripts | 1463298887 |
-| WiFiman | 1385561119 |
 | Xcode | 497799835 |
 
 **Note:** Mac App Store apps require being signed in and having previously obtained the app (including free apps).
+
+### Deliberately not in the Brewfile
+
+| Thing | Why |
+| ------- | ----- |
+| Claude Code CLI | Installed by Anthropic's native installer in `install.sh` Phase 3b, which auto-updates in the background. The `claude-code` cask does not auto-update. |
+| WiFiman | An iOS app run on Apple Silicon via "Designed for iPad". `mas` can neither list nor install iOS apps, so a `mas` line would be permanently unsatisfiable. Install from the App Store's "iPhone & iPad Apps" tab. |
+| PowerShell cask | Removed from homebrew-cask upstream; the `powershell` **formula** is used instead. |
 
 ## Post-Install Manual Steps
 

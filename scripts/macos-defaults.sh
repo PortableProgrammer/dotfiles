@@ -16,13 +16,42 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 # Authentication                                                              #
 ###############################################################################
 
-# Enable Touch ID for sudo. Idempotent: only writes /etc/pam.d/sudo_local
-# if it doesn't already exist. Touch ID does NOT need to be enrolled
-# yet — the PAM stack falls through to the password module if TID is
-# unavailable or not enrolled, so this is safe to apply on any host
-# (including VMs without TID hardware).
-if [[ ! -f /etc/pam.d/sudo_local && -f /etc/pam.d/sudo_local.template ]]; then
-    sudo sh -c 'cp /etc/pam.d/sudo_local.template /etc/pam.d/sudo_local && sed -i "" "s/^#auth/auth/" /etc/pam.d/sudo_local'
+# Enable Touch ID for sudo. Touch ID does NOT need to be enrolled yet — the
+# PAM stack falls through to the password module if TID is unavailable or not
+# enrolled, so this is safe to apply on any host (including VMs without TID
+# hardware). /etc/pam.d/sudo_local survives macOS updates; /etc/pam.d/sudo
+# does not, which is why Apple provides the include.
+#
+# Idempotency asserts the ENABLED LINE, not the file's existence. The earlier
+# `[[ ! -f sudo_local ]]` guard no-oped forever on any host where the template
+# had been copied but the auth line left commented — the file existed, so the
+# script declared victory while Touch ID stayed off.
+if ! grep -qE '^[[:space:]]*auth[[:space:]]+sufficient[[:space:]]+pam_tid\.so' /etc/pam.d/sudo_local 2>/dev/null; then
+    if [[ -f /etc/pam.d/sudo_local ]]; then
+        # File exists but the line is missing or commented. Back it up first —
+        # a malformed sudo_local breaks sudo, and the recovery path then needs
+        # a root shell. Recover with:
+        #   sudo cp /etc/pam.d/sudo_local.bak.<stamp> /etc/pam.d/sudo_local
+        sudo cp /etc/pam.d/sudo_local "/etc/pam.d/sudo_local.bak.$(date +%Y%m%d%H%M%S)"
+        if grep -qE '^[[:space:]]*#[[:space:]]*auth[[:space:]]+sufficient[[:space:]]+pam_tid\.so' /etc/pam.d/sudo_local; then
+            sudo sed -i "" -E 's/^[[:space:]]*#[[:space:]]*(auth[[:space:]]+sufficient[[:space:]]+pam_tid\.so)/\1/' /etc/pam.d/sudo_local
+        else
+            echo 'auth       sufficient     pam_tid.so' | sudo tee -a /etc/pam.d/sudo_local >/dev/null
+        fi
+    elif [[ -f /etc/pam.d/sudo_local.template ]]; then
+        sudo sh -c 'cp /etc/pam.d/sudo_local.template /etc/pam.d/sudo_local && sed -i "" "s/^#auth/auth/" /etc/pam.d/sudo_local'
+    else
+        echo "[warn] Neither /etc/pam.d/sudo_local nor its template found — skipping Touch ID for sudo" >&2
+    fi
+
+    # Confirm the write landed. This checks the file, not the live PAM stack:
+    # sudo's cached timestamp means `sudo true` would succeed even against a
+    # broken stack, so it can't tell us anything useful here.
+    if grep -qE '^[[:space:]]*auth[[:space:]]+sufficient[[:space:]]+pam_tid\.so' /etc/pam.d/sudo_local 2>/dev/null; then
+        echo "[ok] Touch ID for sudo enabled — verify in a NEW terminal with: sudo -k && sudo true"
+    else
+        echo "[warn] Touch ID for sudo not enabled — inspect /etc/pam.d/sudo_local by hand" >&2
+    fi
 fi
 
 ###############################################################################

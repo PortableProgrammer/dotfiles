@@ -196,6 +196,36 @@ fi
 
 ok "Phase 3 complete"
 
+# ─── Phase 3b: Claude Code CLI (macOS only) ──────────────────────────────────
+# Deliberately NOT a Brewfile cask. Anthropic's native installer auto-updates in
+# the background; the `claude-code` / `claude-code@latest` casks do not, and would
+# need a manual `brew upgrade` to stay current. The launcher lands at
+# ~/.local/bin/claude, which mac/.zshrc.d/898_mac_env.sh already puts on PATH.
+# Idempotent: the installer self-updates thereafter, so we only bootstrap it once.
+#
+# macOS-gated on purpose: ~/.local/bin is only on PATH in the `mac` stow package,
+# and the Linux consumers of this repo are Ansible-managed homelab hosts that have
+# no business carrying an interactive AI CLI.
+
+if is_macos; then
+    info "Phase 3b: Claude Code CLI"
+
+    if command -v claude &>/dev/null; then
+        ok "Claude Code already installed ($(claude --version 2>/dev/null || echo 'version unknown'))"
+    elif [[ -x "$HOME/.local/bin/claude" ]]; then
+        ok "Claude Code already installed at ~/.local/bin/claude (not yet on PATH — open a new shell)"
+    else
+        info "Installing Claude Code (native installer)..."
+        if curl -fsSL https://claude.ai/install.sh | bash; then
+            ok "Claude Code installed — run 'claude' in a new shell to authenticate"
+        else
+            warn "Claude Code install failed. Install manually: curl -fsSL https://claude.ai/install.sh | bash"
+        fi
+    fi
+
+    ok "Phase 3b complete"
+fi
+
 # ─── SSH signing key (macOS) ────────────────────────────────────────────────
 
 if is_macos; then

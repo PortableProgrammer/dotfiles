@@ -54,6 +54,16 @@ cd ~/dotfiles
 
 Expect multiple password prompts during `.pkg` cask installs (these bypass sudo cache by design). `brew bundle` partial failures are tolerated — the script continues to Phases 2-5. Re-run after fixing failures; every phase is idempotent.
 
+> [!IMPORTANT]
+> **Running on a machine that already has apps installed outside Homebrew?**
+> `brew bundle` will not take over an existing `/Applications/Foo.app` — it reports the cask as missing on every run, forever, and `brew bundle check` never passes. Adopt them instead:
+>
+> ```bash
+> brew install --cask --adopt google-chrome 1password istat-menus
+> ```
+>
+> Adoption rewrites permissions inside the app bundle, so it needs **App Management** (step 4) and the app must be **quit**. Docker Desktop in particular fails with `chmod: Operation not permitted` if it's running or the grant is missing. Verify the whole set with `brew bundle check --verbose`.
+
 ---
 
 ## Post-install
@@ -89,9 +99,17 @@ System Settings → Privacy & Security:
 - **Accessibility**: grant to window-management / automation tools you've installed.
 - **Developer Tools**: enable for your terminal.
 
-Touch ID & Password: enroll Touch ID. (`install.sh` already configured PAM to use it for sudo once enrolled.)
+Touch ID & Password: enroll Touch ID. PAM is configured for `sudo` by `scripts/macos-defaults.sh` — which only runs if you answered **y** to its prompt during `install.sh`. If you skipped it, run the script now, then confirm in a **new** terminal:
+
+```bash
+sudo -k && sudo true
+```
+
+A Touch ID prompt (not a password prompt) means it took.
 
 Browser: install the 1Password browser extension on first launch.
+
+**WiFiman**: not installable via `mas` — it's an iOS app run on Apple Silicon. Open the App Store, search "WiFiman", switch to the **iPhone & iPad Apps** tab, and install from there.
 
 ### 10. Network access
 
