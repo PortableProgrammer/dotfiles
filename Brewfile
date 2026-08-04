@@ -1,3 +1,8 @@
+# Declared intent for `brew bundle` — what this machine should have, not what it
+# happens to have. Inline notes are for constraints that bite while editing this
+# file; standing policy and the reasoning for packages deliberately ABSENT live
+# in README.md ("Brewfile conventions" / "Deliberately not in the Brewfile").
+
 # ─── Taps ─────────────────────────────────────────────────────────────────────
 
 tap "fluxcd/tap"
@@ -20,7 +25,7 @@ brew "fluxcd/tap/flux"
 brew "helm"
 brew "k9s"
 brew "kubernetes-cli"
-brew "powershell"
+brew "powershell"  # formula, not cask — the cask was removed upstream 2026-05-22
 brew "pre-commit"
 brew "age"  # sops' default encryption backend — declared alongside it, not as a dep
 brew "sops"
@@ -54,17 +59,11 @@ cask "slack"
 
 # Development
 cask "claude"
-# cask "claude-code"  # 2026-07-30: dropped. The CLI comes from Anthropic's native
-#   installer (install.sh Phase 3b → ~/.local/bin/claude), which auto-updates in the
-#   background. The Homebrew casks explicitly do NOT auto-update — you'd have to run
-#   `brew upgrade claude-code` by hand. Two casks exist if you ever want to switch:
-#   `claude-code` (stable channel, ~1 week behind) and `claude-code@latest`.
-cask "coteditor"  # moved from mas 2026-05-22 — same binary, brew installs reproducibly on VMs where App Store is unreachable
+cask "coteditor"
 cask "docker-desktop"
-# cask "powershell"  # 2026-05-22: removed from homebrew-cask; only powershell@preview remains, and it's deprecated (Gatekeeper check fails, disabled 2026-09-01). Install manually from https://github.com/PowerShell/PowerShell/releases if needed.
 cask "royal-tsx"
 cask "visual-studio-code@insiders"
-cask "wireshark-app"  # 2026-05-23: renamed upstream from 'wireshark' to 'wireshark-app'
+cask "wireshark-app"
 
 # Productivity
 cask "microsoft-office"  # bundles OneDrive — do NOT also list cask "onedrive" (conflicts)
@@ -84,7 +83,7 @@ cask "jordanbaird-ice"
 cask "logi-options+"
 cask "monitorcontrol"
 cask "qlmarkdown"
-cask "the-unarchiver"  # moved from mas 2026-05-22 — same binary, brew installs reproducibly on VMs where App Store is unreachable
+cask "the-unarchiver"
 
 # ─── Mac App Store ────────────────────────────────────────────────────────────
 

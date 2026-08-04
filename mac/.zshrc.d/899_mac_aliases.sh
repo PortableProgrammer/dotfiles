@@ -32,6 +32,12 @@ _brewup_drift() {
     [[ -n "${BREW_DRIFT_BREWFILE:-}" && -x "$_script" ]] || return 0
     echo -e "\nBrewfile Drift:"
     "$_script" || true   # exit 1 means "drift found", not "brewup failed"
+
+    # Stamp that the CHECK ran, which is the only question 898 asks. Whether it
+    # found anything is separate — a clean report is still a report.
+    [[ -n "${BREW_DRIFT_CACHE:-}" ]] || return 0
+    mkdir -p "$BREW_DRIFT_CACHE" 2>/dev/null && touch "$BREW_DRIFT_STAMP" 2>/dev/null
+    return 0
 }
 
 alias brewup='echo -e "Brew Update:\n" && brew update && echo -e "Brew Upgrade:" && brew upgrade --no-ask --no-quit && _brewup_mas && echo -e "Brew Autoremove:" && brew autoremove && echo -e "Brew Cleanup:" && brew cleanup && _brewup_drift'

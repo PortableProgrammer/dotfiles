@@ -1,6 +1,13 @@
-# ─── Brewfile drift warning ──────────────────────────────────────────────────
-# Wraps `brew` to say something the moment an install or uninstall diverges from
-# the Brewfile. It WRITES NOTHING — deliberately.
+# ─── Brewfile drift awareness ────────────────────────────────────────────────
+# Two jobs, both about noticing when the machine and the Brewfile disagree:
+#
+#   1. A `brew` wrapper that speaks up the moment an interactive install or
+#      uninstall diverges from the Brewfile.
+#   2. A shell-start nag, fired only when the full drift check is overdue.
+#
+# Neither one ever writes the Brewfile — that is the deliberate part, and the
+# rest of this header is why. (Part 2 does write a timestamp under
+# $BREW_DRIFT_CACHE; that is bookkeeping about when a check ran, not intent.)
 #
 # Why warn-only rather than auto-editing the Brewfile: the Brewfile records
 # *intent*, and anything derived from machine state can only record *state*.
@@ -45,6 +52,14 @@ if [[ -z "${BREW_DRIFT_BREWFILE:-}" ]]; then
     done
     unset _bd_candidate
 fi
+
+# Shared drift state, defined here because this is the module that owns drift
+# configuration — but written by neither this file nor this wrapper, which
+# still touch nothing. 899's `brewup` stamps last-run after the report; 898
+# stamps last-nag when it complains about last-run being old.
+BREW_DRIFT_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/brew-drift"
+BREW_DRIFT_STAMP="$BREW_DRIFT_CACHE/last-run"
+BREW_DRIFT_NAG_STAMP="$BREW_DRIFT_CACHE/last-nag"
 
 # Is <name> declared in the Brewfile as <kind>? Tolerates a tap prefix, so
 # `brew install flux` matches a declared `brew "fluxcd/tap/flux"`.
@@ -131,3 +146,58 @@ brew() {
     [[ $_status -eq 0 ]] && (( $+functions[_brew_drift_check] )) && _brew_drift_check "$@"
     return $_status
 }
+
+# ─── Part 2: staleness nag ───────────────────────────────────────────────────
+# The full report (bin/brew-drift.sh) rides `brewup` in 899, because a terminal
+# gets opened holding a task and anything printed at shell start competes with
+# it. That placement has exactly one blind spot: it cannot tell you the ritual
+# itself has lapsed. A check nobody runs reports nothing, which reads the same
+# as a clean machine — the trap that let an adopted Google Chrome sit nineteen
+# months stale behind a brew record claiming it was current.
+#
+# So this is the only thing that earns a shell-start slot: not findings, just
+# "the thing that finds things hasn't run." Silent until overdue, and at most
+# once a day, because a line seen fifty times a day stops being read.
+#
+# It also stands in for a launchd agent. A weekly LaunchAgent would need this
+# same freshness guard anyway — agents are user-disablable from Login Items &
+# Extensions, and a disabled one is silent — so the guard was built and the
+# agent was not.
+#
+# Prints during zsh init, which is safe only because the p10k instant-prompt
+# preamble is NOT in .zshrc (verified 2026-08-04). If that ever changes, move
+# this to a precmd hook or instant prompt will flag it as console output.
+#
+# Silence with BREW_DRIFT_WARN=0; retune with BREW_DRIFT_MAX_DAYS=<n>.
+
+BREW_DRIFT_MAX_DAYS="${BREW_DRIFT_MAX_DAYS:-21}"
+
+# Compares calendar dates rather than elapsed hours, so the nag resets
+# overnight instead of at an arbitrary offset from whenever it last fired.
+_brew_drift_nagged_today() {
+    [[ -f "${BREW_DRIFT_NAG_STAMP:-/nonexistent}" ]] || return 1
+    [[ "$(date -r "$BREW_DRIFT_NAG_STAMP" +%F 2>/dev/null)" == "$(date +%F)" ]]
+}
+
+_brew_drift_staleness() {
+    [[ "${BREW_DRIFT_WARN:-1}" != "0" ]] || return 0
+    [[ -n "${BREW_DRIFT_BREWFILE:-}" ]]  || return 0   # no checkout, nothing to nag about
+    [[ -n "${BREW_DRIFT_STAMP:-}" ]]     || return 0
+    _brew_drift_nagged_today && return 0
+
+    local _msg
+    if [[ ! -f "$BREW_DRIFT_STAMP" ]]; then
+        _msg="the Brewfile drift check has never run here"
+    else
+        local _days=$(( ( $(date +%s) - $(stat -f %m "$BREW_DRIFT_STAMP" 2>/dev/null || echo 0) ) / 86400 ))
+        [[ "$_days" -lt "$BREW_DRIFT_MAX_DAYS" ]] && return 0
+        _msg="the Brewfile drift check last ran ${_days} days ago"
+    fi
+
+    printf '\033[1;33m[brewfile]\033[0m %s — run \033[1mbrewup\033[0m\n' "$_msg"
+
+    mkdir -p "$BREW_DRIFT_CACHE" 2>/dev/null && touch "$BREW_DRIFT_NAG_STAMP" 2>/dev/null
+    return 0
+}
+
+_brew_drift_staleness

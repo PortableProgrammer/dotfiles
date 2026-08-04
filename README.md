@@ -144,6 +144,27 @@ To add a new module, create a `.sh` file in the appropriate `common/.zshrc.d/` o
 
 Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`. To add or remove packages, edit the Brewfile and re-run `install.sh` (or `brew bundle --file=~/dotfiles/Brewfile` directly).
 
+### Brewfile conventions
+
+The Brewfile records **intent** — what a machine built from this repo should have. That is why nothing auto-writes it, and why a package you are still evaluating is legitimately undeclared.
+
+**Prefer a `cask` over `mas` when the same binary ships both ways.** Homebrew installs reproducibly on VMs and fresh machines where the App Store is unreachable or not signed in; `mas` requires an Apple ID that has already obtained the app. CotEditor and The Unarchiver both moved from `mas` to `cask` on this basis (2026-05-22). Use `mas` only where there is no cask.
+
+Inline comments are reserved for constraints that bite *while editing the file* — a conflict, or a non-obvious reason a package exists. Two currently qualify:
+
+- `microsoft-office` bundles OneDrive, so adding `cask "onedrive"` alongside it conflicts.
+- `libsmi` looks unused but backs Wireshark's SNMP dissector and homelab MIB work.
+
+### Deliberately not in the Brewfile
+
+Absences are decisions too, and they are invisible in a file that only lists what is present.
+
+| Package | Why it is absent |
+| --------- | ------------------ |
+| `claude-code` | The CLI comes from Anthropic's native installer (`install.sh` Phase 3b → `~/.local/bin/claude`), which auto-updates in the background. Both Homebrew casks explicitly do **not** auto-update, so they would need a manual `brew upgrade`. If you ever want to switch, the casks are `claude-code` (stable, ~1 week behind) and `claude-code@latest`. The `claude` cask *is* declared — that is the desktop app, a different thing. |
+| `powershell` (cask) | Removed from homebrew-cask 2026-05-22; only the deprecated `powershell@preview` remains, whose Gatekeeper check fails and which is disabled from 2026-09-01. Declared as a **formula** instead. Install manually from [PowerShell releases](https://github.com/PowerShell/PowerShell/releases) if the formula ever goes too. |
+| `onedrive` | Already bundled by `microsoft-office`; declaring both conflicts. |
+
 ### Checking for drift
 
 `brew` does not update the Brewfile when you install something by hand, so the two diverge silently. [`bin/brew-drift.sh`](bin/brew-drift.sh) reports every direction the machine and the Brewfile can disagree — read-only, it never installs or removes anything:
@@ -180,13 +201,21 @@ $ brew install knockknock
 [brewfile] ~/Code/dotfiles/Brewfile — nothing was written; a trial install needs no entry
 ```
 
-It writes nothing, ever. Declaring is a decision about intent, and a package you are still evaluating is legitimately undeclared — see the header of [`897_brew_drift.sh`](mac/.zshrc.d/897_brew_drift.sh) for why auto-editing the Brewfile was rejected.
+**It never writes the Brewfile.** Declaring is a decision about intent, and a package you are still evaluating is legitimately undeclared — the module header records why auto-editing was rejected, and which of the original arguments for that turned out not to hold.
 
-The wrapper only sees what you type into an interactive shell, so `brewup` ends with a full drift report as the periodic backstop — it covers installs from `install.sh`, Ansible, or any script.
+The wrapper only sees what you type interactively; installs from `install.sh`, Ansible, or any script bypass it entirely. So drift reaches you through three channels, each timed to arrive when it costs the least attention:
 
-It **writes nothing.** Auto-editing the Brewfile would turn a record of *intent* into a mirror of machine state — deleting the line and its explanatory comment on uninstall, and generating paired add/remove commits for packages you try and discard. A warning you ignore leaves no artifact.
+| Channel | Fires | Carries |
+| --------- | ------- | --------- |
+| `brew` wrapper (`897`) | The instant you install or uninstall | One line, about the thing you just did |
+| `brewup` tail (`899`) | Every update run | The full five-section report |
+| Staleness nag (`897`) | Shell start, only when overdue | That the check itself hasn't run |
 
-It only sees what you type interactively; installs from `install.sh`, Ansible, or any script bypass it entirely. It's a latency fix, not a guarantee — `brew-drift.sh` remains the safety net. Silence it for a session with `BREW_DRIFT_WARN=0`.
+The report tails `brewup` rather than greeting you at shell start on purpose: a terminal is opened *holding a task*, and a report printed there competes with it. `brewup` is already the housekeeping ritual, so the findings land when package state is what you're thinking about anyway.
+
+That leaves one blind spot — the ritual lapsing — which is the nag's entire job. It stays silent until the check is over `BREW_DRIFT_MAX_DAYS` old (default 21), then prints one line at most once a day. A check nobody runs reports nothing, which reads exactly like a clean machine.
+
+Silence all of it for a session with `BREW_DRIFT_WARN=0`.
 
 ### Formulae
 
