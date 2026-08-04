@@ -5,7 +5,7 @@ set -uo pipefail
 # Read-only Brewfile drift report. Never installs, uninstalls, or edits
 # anything — it only tells you where the machine and the Brewfile disagree.
 #
-# Drift has TWO directions, and they fail in opposite ways:
+# Drift has THREE directions, and they fail in different ways:
 #
 #   installed but undeclared  — you `brew install`ed something and never added
 #                               it. Loud failure mode: `brew bundle cleanup`
@@ -15,10 +15,16 @@ set -uo pipefail
 #                               hand into /Applications). SILENT failure mode:
 #                               everything works here, and the fresh machine
 #                               you rebuild in a year quietly lacks it.
+#   declared, installed, and  — brew's records say current, the binary on disk
+#   stale on disk               is not. SILENT, and invisible to every other
+#                               brew command including `upgrade --greedy`.
 #
-# The second is the dangerous one and the one a `brew bundle dump` can never
-# fix — a dump records state, so it would "resolve" the disagreement by
-# deleting your intent. That's why this script reports and does not write.
+# The second is the dangerous one for rebuilds and the one a `brew bundle dump`
+# can never fix — a dump records state, so it would "resolve" the disagreement
+# by deleting your intent. That's why this script reports and does not write.
+#
+# The third is the dangerous one for the machine you are sitting at, because
+# every indicator says fine. See section 3 for how that happens.
 #
 # It is also STATELESS by design: it compares settled reality against declared
 # intent. Packages you installed and removed between runs leave no trace, so
@@ -116,7 +122,112 @@ fi
 
 say echo ""
 
-# ─── 3. Orphaned dependencies ───────────────────────────────────────────────
+# ─── 3. Declared and installed, but stale on disk ───────────────────────────
+# Both checks above trust brew's own bookkeeping, and `--adopt` turns that
+# bookkeeping into a claim rather than an observation: adopting writes a
+# Caskroom entry named for the cask's CURRENT version without touching the app
+# it adopted. `brew outdated` and `brew upgrade --greedy` then compare that
+# record against the cask, find them equal, and skip the app forever.
+#
+# Verified 2026-08-04: Google Chrome sat at 132.0.6834.84, bundle untouched
+# since 2025-01, while brew recorded 151.0.7922.72 from a 2026-07-30 adoption.
+# Nineteen months of browser patches missed, with every indicator reading OK.
+#
+# So compare against the bundle's CFBundleShortVersionString and nothing else —
+# it is the only value here that is observed rather than asserted.
+
+# Casks whose upstream version is structurally incomparable to the bundle's
+# (a build id the app never exposes). Empty today; kept so a future false
+# positive gets silenced explicitly instead of by loosening the match for all.
+STALE_IGNORE=""
+
+STALE=""
+UNVERIFIABLE=""
+
+CASK_LIST=()
+while IFS= read -r _c; do [[ -n "$_c" ]] && CASK_LIST+=("$_c"); done < <(brew list --cask 2>/dev/null)
+
+if command -v jq &>/dev/null && [[ ${#CASK_LIST[@]} -gt 0 ]]; then
+    # One JSON call for every cask — twenty `brew info` invocations would be
+    # too slow to hang off an interactive alias. This is ~0.8s for twenty.
+    CASK_JSON=$(brew info --cask --json=v2 "${CASK_LIST[@]}" 2>/dev/null | jq -r '
+        .casks[] | [
+            .token,
+            (.version | split(",")[0]),
+            ([ .artifacts[]? | select(type=="object") | .app? // empty
+                             | .[]? | select(type=="string") ] | first // "")
+        ] | @tsv')
+
+    while IFS=$'\t' read -r token upstream app; do
+        [[ -z "$token" ]] && continue
+        printf '%s\n' "$STALE_IGNORE" | grep -qx "$token" && continue
+
+        # A cask whose artifact is a pkg, binary, or prefpane has no bundle to
+        # read. Named below rather than skipped: a silent skip reads as
+        # "checked and fine", which is the failure this section exists to stop.
+        if [[ -z "$app" || ! -d "/Applications/$app" ]]; then
+            UNVERIFIABLE+="    $token"$'\n'
+            continue
+        fi
+
+        bundle=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
+                 "/Applications/$app/Contents/Info.plist" 2>/dev/null)
+        if [[ -z "$bundle" ]]; then
+            UNVERIFIABLE+="    $token"$'\n'
+            continue
+        fi
+
+        # Prefix match both ways absorbs the usual formatting gap, where the
+        # cask carries a suffix the bundle omits (royal-tsx 6.4.3.1000 vs
+        # 6.4.3). A check that cries wolf gets ignored — same outcome as no
+        # check, but with more machinery.
+        [[ "$upstream" == "$bundle"* || "$bundle" == "$upstream"* ]] && continue
+
+        mtime=$(stat -f '%Sm' -t '%Y-%m' "/Applications/$app" 2>/dev/null)
+        STALE+="$(printf '%-24s cask %-20s disk %-20s app last written %s' \
+                  "$token" "$upstream" "$bundle" "$mtime")"$'\n'
+    done <<< "$CASK_JSON"
+fi
+
+if [[ -z "$STALE" ]]; then
+    say ok "Every readable cask bundle matches its cask version"
+else
+    DRIFT=1
+    say warn "Installed and declared, but the app on disk is BEHIND the cask:"
+    say printf '%s' "$STALE" | sed 's/^/    /'
+    say echo ""
+    say info "  brew thinks these are current; the bundle says otherwise. Force it:"
+    say info "    brew reinstall --cask <name>          # quit the app first"
+fi
+
+if [[ -n "$UNVERIFIABLE" ]]; then
+    say info "  No .app bundle to read (pkg/binary/prefpane artifact) — not checked:"
+    say printf '%s' "$UNVERIFIABLE"
+fi
+
+say echo ""
+
+# ─── 4. Mac App Store apps ──────────────────────────────────────────────────
+# `brew bundle check` renders "outdated" and "never installed" identically, as
+# "needs to be installed or updated" — so an app that is present but months
+# behind looks the same as one that was trialled and discarded. Separate them.
+# Nothing in the daily routine updated these until 2026-08-04, which is why
+# AdGuard for Safari (a content blocker) sat a release behind.
+
+if command -v mas &>/dev/null; then
+    MAS_OUT=$(mas outdated 2>/dev/null)
+    if [[ -z "$MAS_OUT" ]]; then
+        say ok "Mac App Store apps are current"
+    else
+        DRIFT=1
+        say warn "Mac App Store apps with updates available:"
+        say printf '%s\n' "$MAS_OUT" | sed 's/^/    /'
+        say info "  Update with: mas upgrade"
+    fi
+    say echo ""
+fi
+
+# ─── 5. Orphaned dependencies ───────────────────────────────────────────────
 # Not Brewfile drift — these are never declared — but it's the residue left
 # when you uninstall a formula and its dependencies stay behind. Reported so
 # a try-then-discard week doesn't silently accrete packages.
@@ -133,7 +244,7 @@ fi
 
 say echo ""
 
-# ─── 4. VS Code extension hazard ────────────────────────────────────────────
+# ─── 6. VS Code extension hazard ────────────────────────────────────────────
 # brew bundle ignores the VS Code domain entirely while the Brewfile has zero
 # `vscode` lines. Add a single one and `cleanup --force` treats every OTHER
 # installed extension as undeclared and uninstalls it. Verified 2026-07-30:

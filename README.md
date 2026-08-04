@@ -120,7 +120,8 @@ To add a new module, create a `.sh` file in the appropriate `common/.zshrc.d/` o
 | `la` | All | Detailed file listing |
 | `update` | Linux | Full apt update/upgrade/autoremove/clean |
 | `update` | macOS | Software Update + Homebrew update |
-| `brewup` | macOS | Homebrew update/upgrade/autoremove/cleanup |
+| `brewup` | macOS | Homebrew + App Store update/upgrade/autoremove/cleanup, then a drift report |
+| `brewup-deep` | macOS | Force auto-updating casks onto the cask's version (`--greedy`) |
 | `treesize` | All | Interactive disk usage (ncdu) |
 | `neofetch` | All | System info (fastfetch) |
 | `extip` | macOS | External IP address |
@@ -145,7 +146,7 @@ Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`.
 
 ### Checking for drift
 
-`brew` does not update the Brewfile when you install something by hand, so the two diverge silently. [`bin/brew-drift.sh`](bin/brew-drift.sh) reports the gap in both directions — read-only, it never installs or removes anything:
+`brew` does not update the Brewfile when you install something by hand, so the two diverge silently. [`bin/brew-drift.sh`](bin/brew-drift.sh) reports every direction the machine and the Brewfile can disagree — read-only, it never installs or removes anything:
 
 ```bash
 ./bin/brew-drift.sh
@@ -155,7 +156,11 @@ Packages are declared in [`Brewfile`](Brewfile) and installed via `brew bundle`.
 | ----------- | --------- | -------------- |
 | Installed but undeclared | You `brew install`ed it and never added it | Lost on the next machine, or deleted by `brew bundle cleanup` |
 | Declared but unsatisfied | The Brewfile names something brew doesn't manage — usually an app installed by hand into `/Applications` | **Silent** — works here, missing on rebuild |
+| Stale on disk | Declared, installed, brew says current — but the app bundle is older than the cask | **Silent, and invisible to every other brew command** |
+| App Store outdated | A `mas` app has an update waiting | Nothing else surfaces it; `brew bundle check` calls it "not installed" |
 | Orphaned dependencies | Left behind after uninstalling a formula | Slow accretion |
+
+The stale-on-disk check exists because brew's own records can be fiction. `brew install --cask --adopt` writes a Caskroom entry named for the cask's *current* version without inspecting the app it adopted, so `brew outdated` and `brew upgrade --greedy` compare that record against the cask, find them equal, and skip the app permanently. Verified 2026-08-04: Google Chrome sat nineteen months stale at 132.0.6834.84 while brew recorded 151.0.7922.72. The check reads `CFBundleShortVersionString` from the bundle instead — the only version here that is observed rather than asserted. Casks with no `.app` artifact (pkg, binary, prefpane) are listed as unchecked rather than passed over silently.
 
 Only packages installed *on request* count — dependencies are correctly ignored, so you never declare a package's dep tree. Exits `1` on drift, so it works as a gate; `--quiet` suppresses output for hook use.
 
@@ -171,8 +176,13 @@ brew install --cask --adopt <name>
 
 ```
 $ brew install knockknock
-[brewfile] knockknock is installed but NOT declared — it will be lost on the next machine.
+[brewfile] knockknock installed but not declared — add: brew "knockknock"
+[brewfile] ~/Code/dotfiles/Brewfile — nothing was written; a trial install needs no entry
 ```
+
+It writes nothing, ever. Declaring is a decision about intent, and a package you are still evaluating is legitimately undeclared — see the header of [`897_brew_drift.sh`](mac/.zshrc.d/897_brew_drift.sh) for why auto-editing the Brewfile was rejected.
+
+The wrapper only sees what you type into an interactive shell, so `brewup` ends with a full drift report as the periodic backstop — it covers installs from `install.sh`, Ansible, or any script.
 
 It **writes nothing.** Auto-editing the Brewfile would turn a record of *intent* into a mirror of machine state — deleting the line and its explanatory comment on uninstall, and generating paired add/remove commits for packages you try and discard. A warning you ignore leaves no artifact.
 

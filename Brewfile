@@ -22,6 +22,7 @@ brew "k9s"
 brew "kubernetes-cli"
 brew "powershell"
 brew "pre-commit"
+brew "age"  # sops' default encryption backend — declared alongside it, not as a dep
 brew "sops"
 brew "teleport"
 
