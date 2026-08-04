@@ -67,6 +67,7 @@ cask "wireshark-app"  # 2026-05-23: renamed upstream from 'wireshark' to 'wiresh
 
 # Productivity
 cask "microsoft-office"  # bundles OneDrive — do NOT also list cask "onedrive" (conflicts)
+cask "obsidian"
 cask "transmit"
 
 # Security

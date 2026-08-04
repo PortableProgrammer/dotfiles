@@ -2,12 +2,28 @@
 # Wraps `brew` to say something the moment an install or uninstall diverges from
 # the Brewfile. It WRITES NOTHING — deliberately.
 #
-# Why warn-only rather than auto-editing the Brewfile: a wrapper that appends on
-# install and deletes on uninstall turns the Brewfile into a mirror of machine
-# state, and the Brewfile's whole value is that it records *intent*. Auto-delete
-# would strip the line and the comment explaining why the entry existed; a week
-# of trying packages you later discard would produce paired add/remove commits
-# with zero net change. A warning you ignore costs nothing and leaves no artifact.
+# Why warn-only rather than auto-editing the Brewfile: the Brewfile records
+# *intent*, and anything derived from machine state can only record *state*.
+#
+# The argument this comment used to make — that trial installs would produce
+# paired add/remove commits with zero net change — does not survive scrutiny, so
+# don't lean on it: an add and a remove before any commit returns the file to
+# unmodified, and commits are free anyway. The reasons that do hold:
+#
+#   1. Auto-add alone leaves a trial you abandoned declared-but-unsatisfied.
+#      That is the *silent* drift direction (11 of 16 findings on 2026-07-30),
+#      so the cheap half of the feature makes the worse half of the problem.
+#   2. Getting the self-cancelling property requires auto-delete too, and a
+#      deleted line takes its inline note with it. Only 6 of 62 declarations
+#      carry one, but they are the ones that stop a repeat mistake — see the
+#      onedrive conflict warning on microsoft-office.
+#   3. State-derived writes cannot see entries that describe an *absent*
+#      package (the claude-code and powershell blocks). A regenerating writer
+#      deletes those unconditionally; it has no input that says they exist.
+#
+# None of that is unsolvable — a line-editing writer that comments a line out
+# instead of deleting it when the line carries a note would answer (2) and (3).
+# It is unbuilt because a printf already buys the outcome for no moving parts.
 #
 # What this buys over bin/brew-drift.sh: latency. The drift script is stateless
 # and correct, but only runs when invoked — `libsmi` sat undeclared for 79 days
@@ -71,19 +87,36 @@ _brew_drift_check() {
         *) return 0 ;;
     esac
 
-    local _pkg _drifted=0
+    local _pkg _drifted=0 _line
     for _pkg in "${_pkgs[@]}"; do
         if [[ "$_expect_declared" -eq 1 ]]; then
             _brew_drift_declared "$_kind" "$_pkg" && continue
-            printf '\033[1;33m[brewfile]\033[0m %s is installed but NOT declared — it will be lost on the next machine.\n' "$_pkg"
+            # Name the exact line to paste rather than the problem alone. A cask
+            # that just installed has a Caskroom directory and a formula doesn't,
+            # which settles the keyword without asking brew a second question.
+            if [[ "$_kind" == tap ]]; then
+                _line="tap \"$_pkg\""
+            elif [[ -d "${HOMEBREW_PREFIX:-/opt/homebrew}/Caskroom/$_pkg" ]]; then
+                _line="cask \"$_pkg\""
+            else
+                _line="brew \"$_pkg\""
+            fi
+            printf '\033[1;33m[brewfile]\033[0m %s installed but not declared — add: %s\n' "$_pkg" "$_line"
         else
             _brew_drift_declared "$_kind" "$_pkg" || continue
-            printf '\033[1;33m[brewfile]\033[0m %s is removed but STILL declared — the next bootstrap will reinstall it.\n' "$_pkg"
+            printf '\033[1;33m[brewfile]\033[0m %s removed but still declared — drop its line, or the next bootstrap reinstalls it.\n' "$_pkg"
         fi
         _drifted=1
     done
 
-    [[ "$_drifted" -eq 1 ]] && printf '\033[1;34m[brewfile]\033[0m %s\n' "$BREW_DRIFT_BREWFILE"
+    # One trailer, not one per package: the path to edit, plus explicit standing
+    # permission to ignore the whole thing. Undeclared is a valid state for a
+    # package you are still deciding about — see the header.
+    if [[ "$_drifted" -eq 1 ]]; then
+        local _hint="a trial install needs no entry"
+        [[ "$_expect_declared" -eq 0 ]] && _hint="leave it declared if you mean to reinstall"
+        printf '\033[1;34m[brewfile]\033[0m %s — nothing was written; %s\n' "$BREW_DRIFT_BREWFILE" "$_hint"
+    fi
     return 0
 }
 
@@ -91,6 +124,10 @@ brew() {
     command brew "$@"
     local _status=$?
     # Only comment on a successful mutation, and never alter brew's exit code.
-    [[ $_status -eq 0 ]] && _brew_drift_check "$@"
+    # The function-exists guard matters for shells that inherit this wrapper
+    # without its helpers — snapshot-based shells (Claude Code's Bash tool) and
+    # partial profile sourcing both do this. A warning must never be able to
+    # print an error over a brew command that actually succeeded.
+    [[ $_status -eq 0 ]] && (( $+functions[_brew_drift_check] )) && _brew_drift_check "$@"
     return $_status
 }
