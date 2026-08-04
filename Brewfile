@@ -91,7 +91,6 @@ mas "1Password for Safari", id: 1569813296
 mas "AdGuard for Safari", id: 1440147259
 mas "Codye", id: 1516894961
 mas "DaisyDisk", id: 411643860
-mas "DevCleaner", id: 1388020431
 mas "Discovery", id: 1381004916
 mas "Magnet", id: 441258766
 mas "TestFlight", id: 899247664
