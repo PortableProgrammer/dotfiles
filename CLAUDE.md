@@ -56,4 +56,4 @@ Out-of-repo ideating-window output lives at:
 
 Half-baked ideas, speculative architecture proposals, and tooling-gap notes from sessions where the operator was unavailable and an ideating window was sanctioned per the global rule. The notebook compounds; ideas that don't pan out on their own often seed ones that do, so old entries are worth glancing at, not just the latest.
 
-Most recent entry: `2026-05-18.md` — public-flip resolution + deferred items (Brewfile drift, fresh-install validation, ansible vault templating decision, prompt-segment greenfield lesson, pointers to operator-triage notes). Read the latest before starting open-ended work.
+Most recent entry: `2026-08-04.md` — drift delivery rebuild (workstation-gate-as-one-command, ritual attachment vs. channel invention, observed-vs-asserted status, `--adopt` as an upstream bug, the nag that names its own remedy). Read the latest before starting open-ended work.
