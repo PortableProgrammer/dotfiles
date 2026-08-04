@@ -120,7 +120,7 @@ To add a new module, create a `.sh` file in the appropriate `common/.zshrc.d/` o
 | `la` | All | Detailed file listing |
 | `update` | Linux | Full apt update/upgrade/autoremove/clean |
 | `update` | macOS | Software Update + Homebrew update |
-| `brewup` | macOS | Homebrew + App Store update/upgrade/autoremove/cleanup, then a drift report |
+| `brewup` | macOS | Homebrew + App Store update/upgrade/autoremove/cleanup, then a drift report and a dotfiles push check |
 | `brewup-deep` | macOS | Force auto-updating casks onto the cask's version (`--greedy`) |
 | `treesize` | All | Interactive disk usage (ncdu) |
 | `neofetch` | All | System info (fastfetch) |
@@ -216,6 +216,12 @@ The report tails `brewup` rather than greeting you at shell start on purpose: a 
 That leaves one blind spot — the ritual lapsing — which is the nag's entire job. It stays silent until the check is over `BREW_DRIFT_MAX_DAYS` old (default 21), then prints one line at most once a day. A check nobody runs reports nothing, which reads exactly like a clean machine.
 
 Silence all of it for a session with `BREW_DRIFT_WARN=0`.
+
+#### Is any of this actually replicated?
+
+`brewup` ends by asking whether the remote has your dotfiles, which is what decides how much survives the machine dying. Unpushed commits and uncommitted files are counted separately and worded differently: a commit is a declaration that something is done, while a dirty tree is often work in progress — or a file that dirtied itself, which is what `mac/.claude/settings.json` does on every settings toggle. A branch with no upstream gets its own message, because those commits aren't merely unpushed, they're unreachable from anywhere but that disk.
+
+This rides `brewup` rather than taking a second shell-start slot. The staleness nag already guarantees the ritual can't lapse quietly, so unpushed work can't go unnoticed for longer than `BREW_DRIFT_MAX_DAYS` — which is precisely why a second nag would have been redundant rather than safer. Nothing auto-pushes: this repo is public, so an accidentally committed secret would publish with no window to amend.
 
 ### Formulae
 

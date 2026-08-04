@@ -40,7 +40,55 @@ _brewup_drift() {
     return 0
 }
 
-alias brewup='echo -e "Brew Update:\n" && brew update && echo -e "Brew Upgrade:" && brew upgrade --no-ask --no-quit && _brewup_mas && echo -e "Brew Autoremove:" && brew autoremove && echo -e "Brew Cleanup:" && brew cleanup && _brewup_drift'
+# The drift report answers "does this machine match the Brewfile?". This answers
+# "does the remote have the Brewfile?" — the question that decides what survives
+# the machine dying, and the one nothing else asks unless you happen to be cd'd
+# into the repo (p10k shows ⇢N there) or ending a Claude session.
+#
+# It rides this ritual rather than claiming a second shell-start slot. 897's
+# staleness nag already guarantees the ritual cannot lapse silently, so unpushed
+# work cannot go unnoticed for longer than BREW_DRIFT_MAX_DAYS — which is the
+# whole reason a second nag isn't needed.
+#
+# Unpushed and uncommitted are reported separately and worded differently on
+# purpose: a commit is a declaration that something is done, while a dirty tree
+# is often just work in progress — or a file that dirtied itself, which is
+# exactly what mac/.claude/settings.json does on every settings toggle.
+_brewup_unpushed() {
+    local _repo="${BREW_DRIFT_BREWFILE:h}"
+    [[ -n "${BREW_DRIFT_BREWFILE:-}" ]] || return 0
+    command -v git &>/dev/null                        || return 0
+    git -C "$_repo" rev-parse --git-dir &>/dev/null   || return 0
+
+    echo -e "\nDotfiles Repo:"
+
+    # No upstream at all — detached HEAD, or a branch never pushed. Worth its
+    # own message: those commits are not merely unpushed, they are unreachable
+    # from anywhere but this disk.
+    if ! git -C "$_repo" rev-parse --abbrev-ref '@{u}' &>/dev/null; then
+        printf '\033[1;33m[dotfiles]\033[0m no upstream for the current branch — nothing here is replicated\n'
+        printf '\033[1;34m[dotfiles]\033[0m %s\n' "$_repo"
+        return 0
+    fi
+
+    local _ahead _dirty
+    _ahead=$(git -C "$_repo" rev-list --count '@{u}..HEAD' 2>/dev/null || echo 0)
+    _dirty=$(git -C "$_repo" status --porcelain 2>/dev/null | grep -c . || true)
+
+    [[ "$_ahead" -gt 0 ]] && \
+        printf '\033[1;33m[dotfiles]\033[0m %s commit(s) not pushed — the remote is the only copy that outlives this machine\n' "$_ahead"
+    [[ "$_dirty" -gt 0 ]] && \
+        printf '\033[1;33m[dotfiles]\033[0m %s file(s) uncommitted\n' "$_dirty"
+
+    if [[ "$_ahead" -eq 0 && "$_dirty" -eq 0 ]]; then
+        printf '\033[1;32m[dotfiles]\033[0m clean and pushed\n'
+    else
+        printf '\033[1;34m[dotfiles]\033[0m %s\n' "$_repo"
+    fi
+    return 0
+}
+
+alias brewup='echo -e "Brew Update:\n" && brew update && echo -e "Brew Upgrade:" && brew upgrade --no-ask --no-quit && _brewup_mas && echo -e "Brew Autoremove:" && brew autoremove && echo -e "Brew Cleanup:" && brew cleanup && _brewup_drift && _brewup_unpushed'
 
 # Force auto-updating casks onto the cask's version. Run when the drift report
 # says an app self-updated into a corner, not on a schedule — this replaces app
