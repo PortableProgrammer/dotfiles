@@ -135,13 +135,43 @@ say echo ""
 #
 # So compare against the bundle's CFBundleShortVersionString and nothing else —
 # it is the only value here that is observed rather than asserted.
+#
+# Direction matters. Disk BEHIND the cask is the adoption failure above —
+# real drift, fixed by reinstalling. Disk AHEAD of the cask is the opposite
+# and healthy steady state for a self-updating app: the vendor's updater
+# ships faster than the cask definition bumps (2026-08-06: Chrome bundle
+# .109 minutes after brew poured .76). The reinstall remedy would DOWNGRADE
+# that app, so ahead is reported as information, never as drift.
 
 # Casks whose upstream version is structurally incomparable to the bundle's
 # (a build id the app never exposes). Empty today; kept so a future false
 # positive gets silenced explicitly instead of by loosening the match for all.
 STALE_IGNORE=""
 
+# Segment-wise version compare, bash-3.2-safe. Echoes "ahead", "behind", or
+# "equal" for $1 relative to $2. Numeric segments compare numerically (so
+# .109 > .76); anything non-numeric falls back to string compare, and a tie
+# with leftover segments goes to the longer version (1.2.1 > 1.2).
+_vercmp() {
+    local -a a b
+    local i seg_a seg_b
+    IFS='.' read -r -a a <<< "$1"
+    IFS='.' read -r -a b <<< "$2"
+    for (( i = 0; i < ${#a[@]} || i < ${#b[@]}; i++ )); do
+        seg_a="${a[i]:-0}"; seg_b="${b[i]:-0}"
+        if [[ "$seg_a" =~ ^[0-9]+$ && "$seg_b" =~ ^[0-9]+$ ]]; then
+            (( 10#$seg_a > 10#$seg_b )) && { echo ahead;  return; }
+            (( 10#$seg_a < 10#$seg_b )) && { echo behind; return; }
+        else
+            [[ "$seg_a" > "$seg_b" ]] && { echo ahead;  return; }
+            [[ "$seg_a" < "$seg_b" ]] && { echo behind; return; }
+        fi
+    done
+    echo equal
+}
+
 STALE=""
+AHEAD=""
 UNVERIFIABLE=""
 
 CASK_LIST=()
@@ -184,13 +214,21 @@ if command -v jq &>/dev/null && [[ ${#CASK_LIST[@]} -gt 0 ]]; then
         [[ "$upstream" == "$bundle"* || "$bundle" == "$upstream"* ]] && continue
 
         mtime=$(stat -f '%Sm' -t '%Y-%m' "/Applications/$app" 2>/dev/null)
-        STALE+="$(printf '%-24s cask %-20s disk %-20s app last written %s' \
-                  "$token" "$upstream" "$bundle" "$mtime")"$'\n'
+        line="$(printf '%-24s cask %-20s disk %-20s app last written %s' \
+                "$token" "$upstream" "$bundle" "$mtime")"$'\n'
+        if [[ "$(_vercmp "$bundle" "$upstream")" == "ahead" ]]; then
+            AHEAD+="$line"
+        else
+            # "behind" and the unorderable weirdos both land here: anything
+            # that can't be proven ahead gets the loud treatment, and a
+            # false alarm gets silenced by name via STALE_IGNORE.
+            STALE+="$line"
+        fi
     done <<< "$CASK_JSON"
 fi
 
 if [[ -z "$STALE" ]]; then
-    say ok "Every readable cask bundle matches its cask version"
+    say ok "No readable cask bundle is behind its cask version"
 else
     DRIFT=1
     say warn "Installed and declared, but the app on disk is BEHIND the cask:"
@@ -198,6 +236,12 @@ else
     say echo ""
     say info "  brew thinks these are current; the bundle says otherwise. Force it:"
     say info "    brew reinstall --cask <name>          # quit the app first"
+fi
+
+if [[ -n "$AHEAD" ]]; then
+    say info "  App on disk is AHEAD of the cask (self-updated past it) — not drift:"
+    say printf '%s' "$AHEAD" | sed 's/^/    /'
+    say info "  The cask definition will catch up. Do NOT reinstall — that downgrades."
 fi
 
 if [[ -n "$UNVERIFIABLE" ]]; then
