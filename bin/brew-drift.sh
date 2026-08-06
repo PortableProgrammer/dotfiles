@@ -170,6 +170,31 @@ _vercmp() {
     echo equal
 }
 
+# Casks whose artifact is a pkg, binary, or installer leave no .app of their
+# own for the generic loop to read — but almost all of them still put
+# something versioned on disk. This table maps the token to that something.
+# Echoes "version<TAB>path"; a token with no entry is reported unchecked,
+# and adding a line here is the remedy that report names.
+_app_probe() {
+    local v
+    v=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
+        "/Applications/$1/Contents/Info.plist" 2>/dev/null)
+    [[ -n "$v" ]] && printf '%s\t%s\n' "$v" "/Applications/$1"
+}
+_probe() {
+    case "$1" in
+        # binary artifact; brew owns the install outright, so an exact match
+        # is the only healthy state
+        1password-cli)    printf '%s\t%s\n' "$(op --version 2>/dev/null)" \
+                                            "$(command -v op 2>/dev/null)" ;;
+        # installer artifact; the app it installs carries the version
+        logi-options+)    _app_probe "logioptionsplus.app" ;;
+        # pkg installing the whole suite; Word stands in for it, and MAU
+        # runs it ahead of the cask the same way Keystone runs Chrome
+        microsoft-office) _app_probe "Microsoft Word.app" ;;
+    esac
+}
+
 STALE=""
 AHEAD=""
 UNVERIFIABLE=""
@@ -192,16 +217,17 @@ if command -v jq &>/dev/null && [[ ${#CASK_LIST[@]} -gt 0 ]]; then
         [[ -z "$token" ]] && continue
         printf '%s\n' "$STALE_IGNORE" | grep -qx "$token" && continue
 
-        # A cask whose artifact is a pkg, binary, or prefpane has no bundle to
-        # read. Named below rather than skipped: a silent skip reads as
-        # "checked and fine", which is the failure this section exists to stop.
-        if [[ -z "$app" || ! -d "/Applications/$app" ]]; then
-            UNVERIFIABLE+="    $token"$'\n'
-            continue
+        # No .app artifact (or nothing readable at it) → fall back to the
+        # probe table. Still unreadable after that is named below rather than
+        # skipped: a silent skip reads as "checked and fine", which is the
+        # failure this section exists to stop.
+        if [[ -n "$app" && -d "/Applications/$app" ]]; then
+            appdir="/Applications/$app"
+            bundle=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
+                     "$appdir/Contents/Info.plist" 2>/dev/null)
+        else
+            IFS=$'\t' read -r bundle appdir <<< "$(_probe "$token")"
         fi
-
-        bundle=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
-                 "/Applications/$app/Contents/Info.plist" 2>/dev/null)
         if [[ -z "$bundle" ]]; then
             UNVERIFIABLE+="    $token"$'\n'
             continue
@@ -213,7 +239,7 @@ if command -v jq &>/dev/null && [[ ${#CASK_LIST[@]} -gt 0 ]]; then
         # check, but with more machinery.
         [[ "$upstream" == "$bundle"* || "$bundle" == "$upstream"* ]] && continue
 
-        mtime=$(stat -f '%Sm' -t '%Y-%m' "/Applications/$app" 2>/dev/null)
+        mtime=$(stat -f '%Sm' -t '%Y-%m' "$appdir" 2>/dev/null)
         line="$(printf '%-24s cask %-20s disk %-20s app last written %s' \
                 "$token" "$upstream" "$bundle" "$mtime")"$'\n'
         if [[ "$(_vercmp "$bundle" "$upstream")" == "ahead" ]]; then
@@ -241,12 +267,13 @@ fi
 if [[ -n "$AHEAD" ]]; then
     say info "  App on disk is AHEAD of the cask (self-updated past it) — not drift:"
     say printf '%s' "$AHEAD" | sed 's/^/    /'
-    say info "  The cask definition will catch up. Do NOT reinstall — that downgrades."
 fi
 
 if [[ -n "$UNVERIFIABLE" ]]; then
-    say info "  No .app bundle to read (pkg/binary/prefpane artifact) — not checked:"
+    say warn "Nothing versioned on disk that this script knows how to read:"
     say printf '%s' "$UNVERIFIABLE"
+    say info "  Teach _probe (in this script) where the version lives — until then"
+    say info "  these casks are exactly as invisible as an adopted one."
 fi
 
 say echo ""
