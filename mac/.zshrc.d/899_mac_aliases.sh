@@ -17,6 +17,23 @@ alias la='ls -AgGvLhp'
 
 # Steps that must not sever the chain get their own wrappers: a machine with no
 # `mas`, or no repo checkout, should still finish autoremove and cleanup.
+
+# An OS upgrade (or an Xcode update from `mas upgrade`) leaves the Xcode license
+# unaccepted, and brew only checks it when a formula has to build from source —
+# which is exactly what happens right after an OS release, before bottles for it
+# exist. So the failure lands mid-upgrade, and everything after it in the chain
+# gets skipped. Warn up front instead of gating: a run that's all bottles
+# succeeds without the license, and blocking it would be worse than brew's own
+# (clear) error. The probe is brew's own (check_xcode_license_approved), so this
+# fires exactly when brew would, and never on a CLT-only machine.
+_brewup_xcode_license() {
+    [[ -x /usr/bin/xcrun ]] || return 0
+    /usr/bin/xcrun --find clang 2>&1 | grep -q license || return 0
+    printf '\033[1;33m[xcode]\033[0m license not accepted — any formula that builds from source will fail\n'
+    printf '\033[1;34m[xcode]\033[0m sudo xcodebuild -license accept\n\n'
+    return 0
+}
+
 _brewup_mas() {
     command -v mas &>/dev/null || return 0
     echo -e "\nApp Store Upgrade:"
@@ -88,7 +105,7 @@ _brewup_unpushed() {
     return 0
 }
 
-alias brewup='echo -e "Brew Update:\n" && brew update && echo -e "Brew Upgrade:" && brew upgrade --no-ask --no-quit && _brewup_mas && echo -e "Brew Autoremove:" && brew autoremove && echo -e "Brew Cleanup:" && brew cleanup && _brewup_drift && _brewup_unpushed'
+alias brewup='_brewup_xcode_license && echo -e "Brew Update:\n" && brew update && echo -e "Brew Upgrade:" && brew upgrade --no-ask --no-quit && _brewup_mas && echo -e "Brew Autoremove:" && brew autoremove && echo -e "Brew Cleanup:" && brew cleanup && _brewup_drift && _brewup_unpushed'
 
 # Force auto-updating casks onto the cask's version. Run when the drift report
 # says an app self-updated into a corner, not on a schedule — this replaces app
