@@ -241,7 +241,7 @@ This rides `brewup` rather than taking a second shell-start slot. The staleness 
 | Productivity | microsoft-office, transmit |
 | Security | 1password, 1password-cli |
 | System monitoring | istat-menus |
-| System utilities | appcleaner, jordanbaird-ice, logi-options+, monitorcontrol, qlmarkdown, the-unarchiver |
+| System utilities | appcleaner, logi-options+, monitorcontrol, qlmarkdown, the-unarchiver |
 
 ### Mac App Store (via `mas`)
 

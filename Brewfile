@@ -79,7 +79,11 @@ cask "istat-menus"
 
 # System utilities
 cask "appcleaner"
-cask "jordanbaird-ice"
+# Menu bar manager: none. Ice (jordanbaird-ice) doesn't run on macOS 27 and has
+# had no release in a year. macOS 27's System Settings > Menu Bar switches plus
+# its automatic overflow cover decluttering for now. Candidate is `thaw` (a fork
+# of Ice, rebuilt for 27), but test it only once its cask is on 3.x — the 2.x
+# line the cask ships today won't run on 27.
 cask "logi-options+"
 cask "monitorcontrol"
 cask "qlmarkdown"
