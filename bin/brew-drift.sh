@@ -142,6 +142,17 @@ say echo ""
 # ships faster than the cask definition bumps (2026-08-06: Chrome bundle
 # .109 minutes after brew poured .76). The reinstall remedy would DOWNGRADE
 # that app, so ahead is reported as information, never as drift.
+#
+# Behind has two causes, told apart by brew's install record. Record != bundle
+# is the adoption lie. Record == bundle means brew's bookkeeping is honest and
+# the cask simply moved on — and for an auto_updates cask that is brew
+# deferring to the vendor's updater on purpose (brewup runs without --greedy).
+# The usual reason is the vendor staging a release: 2026-09-14 iStat Menus put
+# 7.50 on its CDN, Homebrew's autobump took it within hours, and the in-app
+# updater still offered nothing past 7.30. Reinstalling there would jump ahead
+# of the vendor's own rollout, so it's listed as information, not drift. Still
+# listed every run: an updater that's switched off looks identical, and
+# a line that persists release after release is how you'd notice.
 
 # Casks whose upstream version is structurally incomparable to the bundle's
 # (a build id the app never exposes). Empty today; kept so a future false
@@ -197,6 +208,7 @@ _probe() {
 
 STALE=""
 AHEAD=""
+PENDING=""
 UNVERIFIABLE=""
 
 CASK_LIST=()
@@ -209,11 +221,13 @@ if command -v jq &>/dev/null && [[ ${#CASK_LIST[@]} -gt 0 ]]; then
         .casks[] | [
             .token,
             (.version | split(",")[0]),
+            ((.installed // "") | split(",")[0]),
+            (.auto_updates // false),
             ([ .artifacts[]? | select(type=="object") | .app? // empty
                              | .[]? | select(type=="string") ] | first // "")
         ] | @tsv')
 
-    while IFS=$'\t' read -r token upstream app; do
+    while IFS=$'\t' read -r token upstream installed autoup app; do
         [[ -z "$token" ]] && continue
         printf '%s\n' "$STALE_IGNORE" | grep -qx "$token" && continue
 
@@ -244,6 +258,9 @@ if command -v jq &>/dev/null && [[ ${#CASK_LIST[@]} -gt 0 ]]; then
                 "$token" "$upstream" "$bundle" "$mtime")"$'\n'
         if [[ "$(_vercmp "$bundle" "$upstream")" == "ahead" ]]; then
             AHEAD+="$line"
+        elif [[ "$autoup" == "true" && -n "$installed" ]] && \
+             [[ "$installed" == "$bundle"* || "$bundle" == "$installed"* ]]; then
+            PENDING+="$line"
         else
             # "behind" and the unorderable weirdos both land here: anything
             # that can't be proven ahead gets the loud treatment, and a
@@ -254,7 +271,7 @@ if command -v jq &>/dev/null && [[ ${#CASK_LIST[@]} -gt 0 ]]; then
 fi
 
 if [[ -z "$STALE" ]]; then
-    say ok "No readable cask bundle is behind its cask version"
+    say ok "No readable cask bundle is stale behind brew's back"
 else
     DRIFT=1
     say warn "Installed and declared, but the app on disk is BEHIND the cask:"
@@ -262,6 +279,13 @@ else
     say echo ""
     say info "  brew thinks these are current; the bundle says otherwise. Force it:"
     say info "    brew reinstall --cask <name>          # quit the app first"
+fi
+
+if [[ -n "$PENDING" ]]; then
+    say info "  Cask is newer than the app's own updater has delivered — brew defers to"
+    say info "  the vendor for these, so this is usually a staged release, not drift:"
+    say printf '%s' "$PENDING" | sed 's/^/    /'
+    say info "  Want it before the vendor offers it? brewup-deep"
 fi
 
 if [[ -n "$AHEAD" ]]; then
